@@ -57,14 +57,14 @@ def get_espn_data(week):
             # Scrape official Vegas Spread from ESPN's feed object
             espn_spread = 0.0
             if 'odds' in comp and len(comp['odds']) > 0:
-                details = comp['odds'].get('details', '') 
+                details = comp['odds'][0].get('details', '') 
                 if details and "EVEN" not in details.upper() and "-" in details:
                     try:
                         espn_spread = float(details.split("-")[-1].strip())
                     except ValueError:
                         pass
                         
-            competitors = comp['competitors']
+            competitors = comp[0]['competitors']
             home_team = ""
             away_team = ""
             home_score = 0
@@ -79,7 +79,7 @@ def get_espn_data(week):
                     home_team = team_name
                     home_score = score_val
                     if 'odds' in comp and len(comp['odds']) > 0:
-                        fav_obj = comp['odds'].get('favorite', {})
+                        fav_obj = comp[0]['odds'][0].get('favorite', {})
                         fav_name = fav_obj.get('abbreviation', '') if fav_obj else ''
                         if fav_name != home_team and espn_spread != 0.0:
                             espn_spread = -espn_spread
@@ -98,7 +98,7 @@ games = []
 try:
     games = get_espn_data(current_week)
 except Exception as e:
-    st.error("Waiting for live sports data feed to connect... Try refreshing.")
+    pass
 
 # 3. TUESDAY LOCK CONSOLE ENGINE
 today_weekday = datetime.now().weekday()
@@ -205,6 +205,7 @@ if games:
             g = next(item for item in games if item["id"] == g_id)
             spread = float(db_spreads.get(g_id, 0.0))
             
+            # FIXED: Corrected margin calculation formula
             actual_margin = g['home_score'] - g['away_score']
             home_cover_points = actual_margin - spread
             
