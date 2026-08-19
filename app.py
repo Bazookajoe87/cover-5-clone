@@ -50,14 +50,14 @@ def get_espn_data(week):
     
     if 'events' in res:
         for event in res['events']:
-            comp = event['competitions'][0]
+            comp = event['competitions']
             status = event['status']['type']['state'] 
             kickoff_str = event['date'] 
             
-            # Bulletproof extraction of Vegas Spread from ESPN's feed object
+            # Scrape official Vegas Spread from ESPN's feed object
             espn_spread = 0.0
             if 'odds' in comp and len(comp['odds']) > 0:
-                details = comp['odds'][0].get('details', '') # Returns e.g. "KC -7.0" or "EVEN"
+                details = comp['odds'].get('details', '') 
                 if details and "EVEN" not in details.upper() and "-" in details:
                     try:
                         espn_spread = float(details.split("-")[-1].strip())
@@ -78,9 +78,8 @@ def get_espn_data(week):
                 if team_data['homeAway'] == 'home':
                     home_team = team_name
                     home_score = score_val
-                    # Adjust sign based on who is the favorite
                     if 'odds' in comp and len(comp['odds']) > 0:
-                        fav_obj = comp['odds'][0].get('favorite', {})
+                        fav_obj = comp['odds'].get('favorite', {})
                         fav_name = fav_obj.get('abbreviation', '') if fav_obj else ''
                         if fav_name != home_team and espn_spread != 0.0:
                             espn_spread = -espn_spread
@@ -116,16 +115,16 @@ try:
             cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
             row = cur.fetchone()
             
-            if row and row[1]: # If line is permanently locked, leave it alone
+            if row and row[1]: 
                 continue
-            elif today_weekday == 1: # It is Tuesday: Lock the current baseline
+            elif today_weekday == 1: 
                 cur.execute("""
                     INSERT INTO spreads (game_id, spread_value, is_locked) 
                     VALUES (%s, %s, TRUE) 
                     ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE
                 """, (g['id'], g['espn_spread']))
                 conn.commit()
-            else: # Dynamic updating mode
+            else: 
                 cur.execute("""
                     INSERT INTO spreads (game_id, spread_value, is_locked) 
                     VALUES (%s, %s, FALSE) 
@@ -166,12 +165,10 @@ if games:
         
         game_started = g['status'] != 'pre'
         
-        # FIX: Allow changes before game starts even if they have 5 picks total
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
         has_this_game_picked = is_home_picked or is_away_picked
         
-        # Disable buttons ONLY if game started OR (user has 5 picks AND this specific game isn't one of them)
         disabled_for_user = game_started or (total_picks_made >= 5 and not has_this_game_picked)
         
         col1, col2 = st.columns(2)
@@ -222,6 +219,9 @@ st.metric(label="Your Total Weekly Points", value=f"{my_week_score:+.1f}")
 
 # 6. LEADERBOARD SYSTEM (Season Long Standings)
 st.subheader("🏆 Multi-Week Season Standings")
+
+all_historical_picks = []
+
 try:
     conn = get_db_connection()
     cur = conn.cursor()
@@ -229,19 +229,29 @@ try:
     all_historical_picks = cur.fetchall()
     cur.close()
     conn.close()
+except Exception:
+    pass
 
-    standings = {}
-    for p_user, p_week, p_gid, p_choice in all_historical_picks:
-        if p_user not in standings:
-            standings[p_user] = 0.0
-            
-        try:
-            hist_games = get_espn_data(p_week)
-            g = next(item for item in hist_games if item["id"] == p_gid)
-            s_val = float(db_spreads.get(p_gid, 0.0))
-            margin = g['home_score'] - g['away_score']
-            pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
-            standings[p_user] += pts
-        except Exception:
-            pass
+standings = {}
 
+for p_user, p_week, p_gid, p_choice in all_historical_picks:
+    if p_user not in standings:
+        standings[p_user] = 0.0
+        
+    try:
+        hist_games = get_espn_data(p_week)
+        g = next(item for item in hist_games if item["id"] == p_gid)
+        s_val = float(db_spreads.get(p_gid, 0.0))
+        margin = g['home_score'] - g['away_score']
+        pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
+        standings[p_user] += pts
+    except Exception:
+        pass
+
+try:
+    sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
+    
+    for rank, (player, score) in enumerate(sorted_standings, 1):
+        st.write(f"{rank}. 👤 **{player.upper()}** — Total Score: `{score:+.1f}`")
+except Exception:
+    pass
