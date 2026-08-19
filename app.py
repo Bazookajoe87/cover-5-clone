@@ -41,50 +41,59 @@ current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
-    res = requests.get(url).json()
     games_list = []
-    if 'events' in res and len(res['events']) > 0:
-        for event in res['events']:
-            comp = event['competitions']
-            status = event['status']['type']['state'] 
-            kickoff_str = event['date'] 
-            espn_spread = 0.0
-            if 'odds' in comp and len(comp['odds']) > 0:
-                details = comp['odds'].get('details', '') 
-                if details and "EVEN" not in details.upper() and "-" in details:
-                    try:
-                        espn_spread = float(details.split("-")[-1].strip())
-                    except ValueError:
-                        pass
-            competitors = comp['competitors']
-            home_team, away_team, home_score, away_score = "", "", 0, 0
-            for team_data in competitors:
-                team_name = team_data['team']['abbreviation']
-                raw_score = team_data.get('score', 0)
-                score_val = int(raw_score) if raw_score else 0
-                if team_data['homeAway'] == 'home':
-                    home_team = team_name
-                    home_score = score_val
-                    if 'odds' in comp and len(comp['odds']) > 0:
-                        fav_obj = comp['odds'].get('favorite', {})
-                        fav_name = fav_obj.get('abbreviation', '') if fav_obj else ''
-                        if fav_name != home_team and espn_spread != 0.0:
-                            espn_spread = -espn_spread
-                else:
-                    away_team = team_name
-                    away_score = score_val
-            games_list.append({
-                "id": event['id'], "home": home_team, "away": away_team,
-                "home_score": home_score, "away_score": away_score,
-                "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
-            })
+    try:
+        res = requests.get(url).json()
+        if 'events' in res and len(res['events']) > 0:
+            for event in res['events']:
+                comp = event['competitions']
+                status = event['status']['type']['state'] 
+                kickoff_str = event['date'] 
+                espn_spread = 0.0
+                if len(comp) > 0 and 'odds' in comp[0] and len(comp[0]['odds']) > 0:
+                    details = comp[0]['odds'][0].get('details', '') 
+                    if details and "EVEN" not in details.upper() and "-" in details:
+                        try:
+                            espn_spread = float(details.split("-")[-1].strip())
+                        except ValueError:
+                            pass
+                competitors = comp[0]['competitors']
+                home_team, away_team, home_score, away_score = "", "", 0, 0
+                for team_data in competitors:
+                    team_name = team_data['team']['abbreviation']
+                    raw_score = team_data.get('score', 0)
+                    score_val = int(raw_score) if raw_score else 0
+                    if team_data['homeAway'] == 'home':
+                        home_team = team_name
+                        home_score = score_val
+                    else:
+                        away_team = team_name
+                        away_score = score_val
+                games_list.append({
+                    "id": event['id'], "home": home_team, "away": away_team,
+                    "home_score": home_score, "away_score": away_score,
+                    "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
+                })
+    except Exception:
+        pass
+        
     if len(games_list) == 0 and week == 1:
         return [
-            {"id": "mock_1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-09T20:15Z", "espn_spread": 3.5},
-            {"id": "mock_2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-10T20:35Z", "espn_spread": 2.5},
-            {"id": "mock_3", "away": "TB", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 3.5},
-            {"id": "mock_4", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": -1.5},
-            {"id": "mock_5", "away": "BAL", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": -3.5}
+            {"id": "mock_1", "away": "BAL", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-10T20:20Z", "espn_spread": 3.0},
+            {"id": "mock_2", "away": "GB", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-11T20:15Z", "espn_spread": 2.5},
+            {"id": "mock_3", "away": "PIT", "home": "ATL", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 3.0},
+            {"id": "mock_4", "away": "ARI", "home": "BUF", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 6.0},
+            {"id": "mock_5", "away": "TEN", "home": "CHI", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 4.0},
+            {"id": "mock_6", "away": "NE", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 8.5},
+            {"id": "mock_7", "away": "HOU", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": -2.5},
+            {"id": "mock_8", "away": "JAX", "home": "MIA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 3.5},
+            {"id": "mock_9", "away": "CAR", "home": "NO", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": 4.0},
+            {"id": "mock_10", "away": "MIN", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T13:00Z", "espn_spread": -1.5},
+            {"id": "mock_11", "away": "LV", "home": "LAC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T16:05Z", "espn_spread": 3.0},
+            {"id": "mock_12", "away": "DEN", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T16:05Z", "espn_spread": 5.5},
+            {"id": "mock_13", "away": "DAL", "home": "CLE", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T16:25Z", "espn_spread": 2.5},
+            {"id": "mock_14", "away": "LA", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:20Z", "espn_spread": 3.5},
+            {"id": "mock_15", "away": "NYJ", "home": "SF", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-14T20:15Z", "espn_spread": 4.5}
         ]
     return games_list
 
@@ -93,6 +102,7 @@ try:
     games = get_espn_data(current_week)
 except Exception:
     pass
+
 today_weekday = datetime.now().weekday()
 db_spreads, my_saved_picks = {}, {}
 
