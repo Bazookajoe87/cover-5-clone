@@ -45,7 +45,8 @@ current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index
 # 2. Fetch Live NFL Schedule and Scores from free ESPN feed
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
-    url = f"https://espn.com{week}"
+    # Added seasontype=2 to force ESPN to fetch Regular Season schedule records
+    url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week={week}"
     res = requests.get(url).json()
     games_list = []
     
@@ -55,7 +56,6 @@ def get_espn_data(week):
             status = event['status']['type']['state'] 
             kickoff_str = event['date'] 
             
-            # Bulletproof extraction handling missing/empty scores pre-season
             competitors = comp['competitors']
             home_team = ""
             away_team = ""
@@ -85,7 +85,7 @@ games = []
 try:
     games = get_espn_data(current_week)
 except Exception as e:
-    st.error(f"Waiting for live sports data feed to connect... Try refreshing.")
+    st.error("Waiting for live sports data feed to connect... Try refreshing.")
 
 # Fetch spreads entered by the admin from DB
 db_spreads = {}
