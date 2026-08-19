@@ -2,20 +2,20 @@ import streamlit as st
 import requests
 import psycopg2
 from datetime import datetime
-import json
 
 # 1. Connect to your free Neon/Supabase database
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-# Initialize Database Tables if they don't exist
+# Initialize Database Tables
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS spreads (
             game_id TEXT PRIMARY KEY,
-            spread_value NUMERIC(3,1) DEFAULT 0.0
+            spread_value NUMERIC(3,1) DEFAULT 0.0,
+            is_locked BOOLEAN DEFAULT FALSE
         );
         CREATE TABLE IF NOT EXISTS user_picks (
             username TEXT,
@@ -37,16 +37,14 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Replica", page_icon="🏈")
 st.title("🏈 Free Cover 5 League")
 
-# Sidebar - User Login & Admin Command
+# Sidebar - User Login & Status Settings
 username = st.sidebar.text_input("Enter Your Name:", value="Player1").strip().lower()
-is_admin = st.sidebar.checkbox("I am the Admin/Boss")
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
-# 2. Fetch Live NFL Schedule and Scores from free ESPN feed
+# 2. Fetch Live NFL Schedule, Scores, and official ESPN spreads
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
-    # Added seasontype=2 to force ESPN to fetch Regular Season schedule records
-    url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week={week}"
+    url = f"https://espn.com{week}"
     res = requests.get(url).json()
     games_list = []
     
@@ -56,6 +54,19 @@ def get_espn_data(week):
             status = event['status']['type']['state'] 
             kickoff_str = event['date'] 
             
+            # Scrape official Vegas Spread from ESPN's feed object
+            espn_spread = 0.0
+            if 'odds' in comp and len(comp['odds']) > 0:
+                details = comp['odds'][0].get('details', '') # Returns e.g. "KC -7.0" or "EVEN"
+                if "EVEN" in details.upper():
+                    espn_spread = 0.0
+                elif "-" in details:
+                    try:
+                        # Extracts the actual line number from the string
+                        espn_spread = float(details.split("-")[-1])
+                    except ValueError:
+                        pass
+                        
             competitors = comp['competitors']
             home_team = ""
             away_team = ""
@@ -70,6 +81,12 @@ def get_espn_data(week):
                 if team_data['homeAway'] == 'home':
                     home_team = team_name
                     home_score = score_val
+                    # If ESPN states the favorite string matches home team, spread stays positive
+                    if 'odds' in comp and len(comp['odds']) > 0:
+                        fav_prov = comp['odds'][0].get('favorite', {}).get('abbreviation', '')
+                        if fav_prov != home_team and espn_spread != 0.0:
+                            # It's an underdog line, flip it to negative for home team perspective
+                            espn_spread = -espn_spread
                 else:
                     away_team = team_name
                     away_score = score_val
@@ -77,7 +94,7 @@ def get_espn_data(week):
             games_list.append({
                 "id": event['id'], "home": home_team, "away": away_team,
                 "home_score": home_score, "away_score": away_score,
-                "status": status, "kickoff": kickoff_str
+                "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
             })
     return games_list
 
@@ -87,17 +104,46 @@ try:
 except Exception as e:
     st.error("Waiting for live sports data feed to connect... Try refreshing.")
 
-# Fetch spreads entered by the admin from DB
+# 3. TUESDAY LOCK CONSOLE ENGINE
+# Checks the current weekday automatically. Tuesday is day index 1 (Mon=0, Tue=1)
+today_weekday = datetime.now().weekday()
+
 db_spreads = {}
 my_saved_picks = {}
 
 try:
     conn = get_db_connection()
     cur = conn.cursor()
+    
+    # Process Automated Locking
+    if games:
+        for g in games:
+            # Query if a locked row already exists
+            cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
+            row = cur.fetchone()
+            
+            if row and row[1]: # If already locked, do nothing
+                continue
+            elif today_weekday == 1: # IT IS TUESDAY! Capture line and permanently lock it
+                cur.execute("""
+                    INSERT INTO spreads (game_id, spread_value, is_locked) 
+                    VALUES (%s, %s, TRUE) 
+                    ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE
+                """, (g['id'], g['espn_spread']))
+                conn.commit()
+            else: # It's Wed-Mon, dynamically cache live moving lines without locking yet
+                cur.execute("""
+                    INSERT INTO spreads (game_id, spread_value, is_locked) 
+                    VALUES (%s, %s, FALSE) 
+                    ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value WHERE spreads.is_locked = FALSE
+                """, (g['id'], g['espn_spread']))
+                conn.commit()
+
+    # Re-fetch official frozen baseline spreads from DB
     cur.execute("SELECT game_id, spread_value FROM spreads")
     db_spreads = dict(cur.fetchall())
 
-    # Fetch what this current user has already picked this week
+    # Fetch user picks
     cur.execute("SELECT game_id, selected_team FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
     my_saved_picks = dict(cur.fetchall())
     cur.close()
@@ -105,38 +151,26 @@ try:
 except Exception:
     pass
 
-# 3. ADMIN COMMAND SCREEN (For entering spreads)
-if is_admin:
-    st.subheader("🛠️ Admin Command: Set Point Spreads")
-    st.caption("Enter the point spreads for the home teams (e.g., -7 for favorite, 3 for underdog)")
-    if games:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        for g in games:
-            current_val = float(db_spreads.get(g['id'], 0.0))
-            new_spread = st.number_input(f"{g['away']} @ {g['home']}", value=current_val, step=0.5, key=f"spread_{g['id']}")
-            if new_spread != current_val:
-                cur.execute("INSERT INTO spreads (game_id, spread_value) VALUES (%s, %s) ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value", (g['id'], new_spread))
-                conn.commit()
-                st.rerun()
-        cur.close()
-        conn.close()
-
 # 4. USER INTERFACE: THE MATCHUPS BOARD
 st.subheader(f"Week {current_week} Matchup Board")
 total_picks_made = len(my_saved_picks)
+
+# Is the global baseline locked or shifting?
+if today_weekday == 1:
+    st.success("🔒 Tuesday Baseline Active: Official game spreads are now permanently locked for the week.")
+else:
+    st.info("🔄 Live Vegas Lines Syncing. Spreads will permanently freeze this Tuesday.")
 
 if games:
     conn = get_db_connection()
     cur = conn.cursor()
     for g in games:
-        spread = float(db_spreads.get(g['id'], 0.0))
+        spread = float(db_spreads.get(g['id'], g['espn_spread']))
         display_line = f"{g['home']} -{abs(spread)}" if spread >= 0 else f"{g['home']} +{abs(spread)}"
         
         st.write(f"🏈 **{g['away']} @ {g['home']}** (Line: {display_line})")
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
-        # KICKOFF LOCK LOGIC: Lock picks if game has started
         game_started = g['status'] != 'pre'
         disabled_for_user = game_started or (total_picks_made >= 5 and g['id'] not in my_saved_picks)
         
@@ -208,13 +242,3 @@ try:
             g = next(item for item in hist_games if item["id"] == p_gid)
             s_val = float(db_spreads.get(p_gid, 0.0))
             margin = g['home_score'] - g['away_score']
-            pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
-            standings[p_user] += pts
-        except Exception:
-            pass
-
-    sorted_standings = sorted(standings.items(), key=lambda x: x, reverse=True)
-    for rank, (player, score) in enumerate(sorted_standings, 1):
-        st.write(f"{rank}. 👤 **{player.upper()}** — Total Score: `{score:+.1f}`")
-except Exception:
-    pass
