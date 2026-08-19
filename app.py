@@ -54,13 +54,11 @@ def get_espn_data(week):
             status = event['status']['type']['state'] 
             kickoff_str = event['date'] 
             
-            # Scrape official Vegas Spread from ESPN's feed object
+            # Bulletproof extraction of Vegas Spread from ESPN's feed object
             espn_spread = 0.0
             if 'odds' in comp and len(comp['odds']) > 0:
                 details = comp['odds'][0].get('details', '') # Returns e.g. "KC -7.0" or "EVEN"
-                if "EVEN" in details.upper():
-                    espn_spread = 0.0
-                elif "-" in details:
+                if details and "EVEN" not in details.upper() and "-" in details:
                     try:
                         espn_spread = float(details.split("-")[-1].strip())
                     except ValueError:
@@ -167,13 +165,19 @@ if games:
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
         game_started = g['status'] != 'pre'
-        disabled_for_user = game_started or (total_picks_made >= 5 and g['id'] not in my_saved_picks)
+        
+        # FIX: Allow changes before game starts even if they have 5 picks total
+        is_home_picked = my_saved_picks.get(g['id']) == "HOME"
+        is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
+        has_this_game_picked = is_home_picked or is_away_picked
+        
+        # Disable buttons ONLY if game started OR (user has 5 picks AND this specific game isn't one of them)
+        disabled_for_user = game_started or (total_picks_made >= 5 and not has_this_game_picked)
         
         col1, col2 = st.columns(2)
         with col1:
-            is_picked = my_saved_picks.get(g['id']) == "HOME"
-            if st.button(f"Pick {g['home']}", key=f"btn_h_{g['id']}", disabled=disabled_for_user, type="primary" if is_picked else "secondary"):
-                if is_picked:
+            if st.button(f"Pick {g['home']}", key=f"btn_h_{g['id']}", disabled=disabled_for_user, type="primary" if is_home_picked else "secondary"):
+                if is_home_picked:
                     cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
                 else:
                     cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
@@ -181,9 +185,8 @@ if games:
                 st.rerun()
                 
         with col2:
-            is_picked = my_saved_picks.get(g['id']) == "AWAY"
-            if st.button(f"Pick {g['away']}", key=f"btn_a_{g['id']}", disabled=disabled_for_user, type="primary" if is_picked else "secondary"):
-                if is_picked:
+            if st.button(f"Pick {g['away']}", key=f"btn_a_{g['id']}", disabled=disabled_for_user, type="primary" if is_away_picked else "secondary"):
+                if is_away_picked:
                     cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
                 else:
                     cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
@@ -242,8 +245,3 @@ try:
         except Exception:
             pass
 
-    sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
-    for rank, (player, score) in enumerate(sorted_standings, 1):
-        st.write(f"{rank}. 👤 **{player.upper()}** — Total Score: `{score:+.1f}`")
-except Exception:
-    pass
