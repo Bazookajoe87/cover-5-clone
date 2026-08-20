@@ -170,12 +170,17 @@ if games:
         st.write(f"### 🏈 **{g['away']} @ {g['home']}** (Line: {display_line})")
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
-        game_started = False
+               game_started = False
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
         has_this_game_picked = is_home_picked or is_away_picked
-        disabled_for_user = game_started or (total_picks_made >= 5 and not has_this_game_picked)
         
+        # FIXED CONTROLLER: Strictly allows you to make picks up to exactly 5
+        if total_picks_made >= 5:
+            disabled_for_user = not has_this_game_picked
+        else:
+            disabled_for_user = False
+
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
