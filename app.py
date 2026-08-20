@@ -60,6 +60,7 @@ TEAM_COLORS = {
     "PIT": {"bg": "#FFB612", "text": "#000000"}, "SF":  {"bg": "#AA0000", "text": "#FFFFFF"},
     "SEA": {"bg": "#002244", "text": "#FFFFFF"}, "TB":  {"bg": "#D50A0A", "text": "#FFFFFF"},
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
+}
 
 # 2. Fetch Live NFL Schedule, Scores, and official ESPN spreads
 @st.cache_data(ttl=300) 
