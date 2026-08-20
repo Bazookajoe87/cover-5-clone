@@ -159,22 +159,27 @@ if games:
         st.write(f"### 🏈 **{g['away']} @ {g['home']}** (Line: {display_line})")
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
-        game_started = False
+        # KICKOFF ENFORCEMENT: True game lockout locks picks the millisecond game starts
+        game_started = g['status'] in ['in', 'post']
+        
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
         has_this_game_picked = is_home_picked or is_away_picked
         
-        # PRECISE 5-PICK UI CONTROLLER
+        # STRICT 5-PICK RULE LAYER
         if total_picks_made >= 5:
             disabled_for_user = not has_this_game_picked
         else:
             disabled_for_user = False
             
+        # Hard lock buttons if game is actively live or final
+        if game_started:
+            disabled_for_user = True
+            
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
-        # STABLE CSS BUTTON TARGETING: Hooks to the unique custom layout string parameter keys
-               # REPLACE THIS EXACT BLOCK IN YOUR CODE:
+        # STABLE INJECTION LAYOUT: Locks official team colors directly onto native button components
         st.html(f"""
             <style>
             button[key="h_{g['id']}"] {{
@@ -191,7 +196,7 @@ if games:
             }}
             </style>
         """)
-
+        
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"{g['home']} (HOME)", key=f"h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
@@ -215,7 +220,9 @@ if games:
                 conn.commit(); cur.close(); conn.close()
                 st.rerun()
         st.divider()
-else: st.info("No games scheduled for this week or data loading.")
+else:
+    st.info("No games scheduled for this week or data loading.")
+
 
 # 5. LIVE INDIVIDUAL DASHBOARD & SCORE COMPUTATION
 st.subheader(f"📊 Your Week {current_week} Tracker ({total_picks_made}/5 Picks)")
