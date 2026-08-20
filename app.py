@@ -3,9 +3,11 @@ import requests
 import psycopg2
 from datetime import datetime
 
+# 1. Connect to your free Neon/Supabase database
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
+# Initialize Database Tables
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -39,6 +41,7 @@ st.title("🏈 Ultimate Cover 5 Autopilot Platform")
 username = st.sidebar.text_input("Player Profile Username:", value="Player1").strip().lower()
 current_week = st.sidebar.selectbox("NFL Week Selector", list(range(1, 19)), index=0)
 
+# 2. Fetch Live NFL Schedule, Scores, and official ESPN spreads
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
@@ -80,12 +83,12 @@ def get_espn_data(week):
             {"id": "2026_w1_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5},
             {"id": "2026_w1_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
             {"id": "2026_w1_g3", "away": "CHI", "home": "CAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -2.5},
-            {"id": "2026_w1_g4", "away": "BAL", "home": "COLS", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -3.5},
+            {"id": "2026_w1_g4", "away": "BAL", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -3.5},
             {"id": "2026_w1_g5", "away": "TB", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5},
             {"id": "2026_w1_g6", "away": "ATL", "home": "PIT", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.0},
             {"id": "2026_w1_g7", "away": "NYJ", "home": "TEN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -1.5},
             {"id": "2026_w1_g8", "away": "NO", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 7.0},
-            {"id": "2026_w1_g9", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "pre", "espn_spread": -1.5},
+            {"id": "2026_w1_g9", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -1.5},
             {"id": "2026_w1_g10", "away": "CLE", "home": "JAX", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 7.0},
             {"id": "2026_w1_g11", "away": "ARI", "home": "LAC", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 11.5},
             {"id": "2026_w1_g12", "away": "GB", "home": "MIN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
@@ -109,7 +112,7 @@ try:
         for g in games:
             cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
             row = cur.fetchone()
-            if row and row[1]: continue
+            if row and row: continue
             elif today_weekday == 1: 
                 cur.execute("INSERT INTO spreads (game_id, week_num, spread_value, is_locked) VALUES (%s, %s, %s, TRUE) ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE", (g['id'], current_week, g['espn_spread']))
                 conn.commit()
@@ -137,7 +140,7 @@ if games:
         line_display = f"{g['home']} -{abs(spread)}" if spread >= 0 else f"{g['home']} +{abs(spread)}"
         
         with st.container():
-            col_match, col_btn1, col_btn2 = st.columns([2, 1, 1])
+            col_match, col_btn1, col_btn2 = st.columns()
             with col_match:
                 st.write(f"### {g['away']} @ {g['home']}")
                 st.caption(f"Line Baseline: {line_display} | Status: {g['status'].upper()} ({g['away']} {g['away_score']} - {g['home_score']} {g['home']})")
@@ -179,27 +182,58 @@ if games:
         except StopIteration: pass
 st.metric(label="Your Combined Weekly Margin Score", value=f"{my_week_score:+.1f}")
 
-st.header("🏆 Live Multi-Week Season Standings")
+st.header("🏆 Live Multi-Week Season Standings & Group Picks")
+all_historical_picks = []
 try:
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT username, week, game_id, selected_team FROM user_picks")
     all_historical_picks = cur.fetchall()
     cur.close(); conn.close()
+except Exception: pass
+
+# Calculate standings
+standings = {}
+group_weekly_picks = {} # Structure: {username: {game_id: choice}}
+
+for p_user, p_week, p_gid, p_choice in all_historical_picks:
+    if p_user not in standings: standings[p_user] = 0.0
     
-    standings = {}
-    for p_user, p_week, p_gid, p_choice in all_historical_picks:
-        if p_user not in standings: standings[p_user] = 0.0
-        try:
-            hist_games = get_espn_data(p_week)
-            g = next(item for item in hist_games if item["id"] == p_gid)
-            s_val = float(db_spreads.get(p_gid, g['espn_spread']))
-            margin = g['home_score'] - g['away_score']
-            pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
-            standings[p_user] += pts
-        except Exception: pass
+    # Cache picks for current week tracking screen
+    if p_week == current_week:
+        if p_user not in group_weekly_picks: group_weekly_picks[p_user] = {}
+        group_weekly_picks[p_user][p_gid] = p_choice
         
+    try:
+        hist_games = get_espn_data(p_week)
+        g = next(item for item in hist_games if item["id"] == p_gid)
+        s_val = float(db_spreads.get(p_gid, g['espn_spread']))
+        margin = g['home_score'] - g['away_score']
+        pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
+        standings[p_user] += pts
+    except Exception: pass
+
+try:
     sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
     for rank, (player, score) in enumerate(sorted_standings, 1):
-        st.write(f"{rank}. 👤 **{player.upper()}** — Cumulative Total: `{score:+.1f}`")
+        st.write(f"### {rank}. 👤 **{player.upper()}** — Total Season Score: `{score:+.1f}`")
+        
+        # DISPLAY GROUP PICKS (Revealed only if game has started)
+        player_week_picks = group_weekly_picks.get(player, {})
+        if player_week_picks and games:
+            pick_displays = []
+            for g_id, choice in player_week_picks.items():
+                try:
+                    g = next(item for item in games if item["id"] == g_id)
+                    game_started = g['status'] in ['in', 'post']
+                    
+                    if game_started:
+                        team_name = g['home'] if choice == "HOME" else g['away']
+                        pick_displays.append(f"🟢 {team_name}")
+                    else:
+                        pick_displays.append("🔒 *HIDDEN UNTIL KICKOFF*")
+                except StopIteration: pass
+            if pick_displays:
+                st.caption(f"Current Week Picks: " + " | ".join(pick_displays))
+        st.divider()
 except Exception: pass
