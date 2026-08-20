@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import psycopg2
 from datetime import datetime
-import streamlit.components.v1 as components
 
 # 1. Connect to your free Neon/Supabase database
 def get_db_connection():
@@ -176,60 +175,41 @@ if games:
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
+        st.html(f"""
+            <style>
+            button[key="btn_h_{g['id']}"] {{
+                background-color: {h_style['bg']} !important; color: {h_style['text']} !important;
+                border: {"4px solid #FFD700" if is_home_picked else "1px solid transparent"} !important;
+                box-shadow: {"0px 0px 12px #FFD700" if is_home_picked else "none"} !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
+            }}
+            button[key="btn_a_{g['id']}"] {{
+                background-color: {a_style['bg']} !important; color: {a_style['text']} !important;
+                border: {"4px solid #FFD700" if is_away_picked else "1px solid transparent"} !important;
+                box-shadow: {"0px 0px 12px #FFD700" if is_away_picked else "none"} !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
+            }}
+            </style>
+        """)
+        
         col1, col2 = st.columns(2)
         with col1:
-            # Bulletproof HTML Selector Iframe: Imbues team hex styles directly into the clicking panels
-            h_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_home_picked else "border: 1px solid transparent;"
-            components.html(f"""
-                <button onclick="window.parent.postMessage('pick_home_{g['id']}', '*')" {'disabled' if disabled_for_user else ''}
-                    style="width:100%; height:50px; background-color:{h_style['bg']}; color:{h_style['text']}; font-size:16px; font-weight:bold; border-radius:5px; {h_border} cursor:pointer;">
-                    {g['home']} (HOME)
-                </button>
-            """, height=60)
-            
+            if st.button(f"{g['home']} (HOME)", key=f"btn_h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+                conn = get_db_connection()
+                cur = conn.cursor()
+                if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                conn.commit(); cur.close(); conn.close(); st.rerun()
+                    
         with col2:
-            a_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_away_picked else "border: 1px solid transparent;"
-            components.html(f"""
-                <button onclick="window.parent.postMessage('pick_away_{g['id']}', '*')" {'disabled' if disabled_for_user else ''}
-                    style="width:100%; height:50px; background-color:{a_style['bg']}; color:{a_style['text']}; font-size:16px; font-weight:bold; border-radius:5px; {a_border} cursor:pointer;">
-                    {g['away']} (AWAY)
-                </button>
-            """, height=60)
-            
-        # Unified Event Receiver listening to the direct color panels
-        # Captures click coordinates and pushes to the backend SQL cluster immediately
-        if f"pick_home_{g['id']}" in st.session_state.get("last_click", ""):
-            st.session_state["last_click"] = ""
-            conn = get_db_connection()
-            cur = conn.cursor()
-            if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-            else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-            conn.commit(); cur.close(); conn.close(); st.rerun()
-            
-        if f"pick_away_{g['id']}" in st.session_state.get("last_click", ""):
-            st.session_state["last_click"] = ""
-            conn = get_db_connection()
-            cur = conn.cursor()
-            if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-            else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-            conn.commit(); cur.close(); conn.close(); st.rerun()
+            if st.button(f"{g['away']} (AWAY)", key=f"btn_a_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+                conn = get_db_connection()
+                cur = conn.cursor()
+                if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                conn.commit(); cur.close(); conn.close(); st.rerun()
         st.divider()
 else: st.info("No games scheduled for this week or data loading.")
-
-# Javascript event catcher bridging iframe clicks to Streamlit session history
-st.html("""
-    <script>
-    window.addEventListener('message', function(e) {
-        if (typeof e.data === 'string') {
-            const sidebar = window.parent.document.querySelector('.stTextInput input');
-            if(sidebar) {
-                const r = window.parent.document.createElement('input');
-                window.parent.postMessage({type: 'streamlit:setComponentValue', value: e.data}, '*');
-            }
-        }
-    });
-    </script>
-""")
 
 # 5. LIVE INDIVIDUAL DASHBOARD & SCORE COMPUTATION
 st.subheader(f"📊 Your Week {current_week} Tracker ({total_picks_made}/5 Picks)")
