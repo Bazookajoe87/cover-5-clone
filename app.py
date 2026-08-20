@@ -142,19 +142,16 @@ except Exception:
     pass
 # 3. TUESDAY LOCK CONSOLE ENGINE
 today_weekday = datetime.now().weekday()
-db_spreads = {}
-my_saved_picks = {}
+db_spreads, my_saved_picks = {}, {}
 
 try:
     conn = get_db_connection()
     cur = conn.cursor()
-    
     if games:
         for g in games:
             cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
             row = cur.fetchone()
-            if row and row: 
-                continue
+            if row and row: continue
             elif today_weekday == 1: 
                 cur.execute("INSERT INTO spreads (game_id, week_num, spread_value, is_locked) VALUES (%s, %s, %s, TRUE) ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE", (g['id'], current_week, g['espn_spread']))
                 conn.commit()
@@ -166,10 +163,8 @@ try:
     db_spreads = dict(cur.fetchall())
     cur.execute("SELECT game_id, selected_team FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
     my_saved_picks = dict(cur.fetchall())
-    cur.close()
-    conn.close()
-except Exception:
-    pass
+    cur.close(); conn.close()
+except Exception: pass
 
 # 4. USER INTERFACE: THE MATCHUPS BOARD
 st.subheader(f"Week {current_week} Matchup Board")
@@ -189,29 +184,33 @@ if games:
         has_this_game_picked = is_home_picked or is_away_picked
         disabled_for_user = game_started or (total_picks_made >= 5 and not has_this_game_picked)
         
+        h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
+        a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
+        
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(f"Pick {g['home']}", key=f"btn_h_{g['id']}", disabled=disabled_for_user, type="primary" if is_home_picked else "secondary", use_container_width=True):
-                conn = get_db_connection()
-                cur = conn.cursor()
-                if is_home_picked:
-                    cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                else:
-                    cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                conn.commit(); cur.close(); conn.close(); st.rerun()
-                
+            # Inline Styled HTML Buttons to guarantee theme matching
+            st.markdown(f'<div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:10px; text-align:center; font-weight:bold; border:{"4px solid #FFD700" if is_home_picked else "none"}; box-shadow:{"0px 0px 10px #FFD700" if is_home_picked else "none"};">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
+            if not disabled_for_user:
+                if st.button(f"Select {g['home']}", key=f"btn_h_{g['id']}", use_container_width=True):
+                    conn = get_db_connection()
+                    cur = conn.cursor()
+                    if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                    else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                    conn.commit(); cur.close(); conn.close(); st.rerun()
+                    
         with col2:
-            if st.button(f"Pick {g['away']}", key=f"btn_a_{g['id']}", disabled=disabled_for_user, type="primary" if is_away_picked else "secondary", use_container_width=True):
-                conn = get_db_connection()
-                cur = conn.cursor()
-                if is_away_picked:
-                    cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                else:
-                    cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                conn.commit(); cur.close(); conn.close(); st.rerun()
+            st.markdown(f'<div style="background-color:{a_style["bg"]}; color:{a_style["text"]}; border-radius:5px; padding:10px; text-align:center; font-weight:bold; border:{"4px solid #FFD700" if is_away_picked else "none"}; box-shadow:{"0px 0px 10px #FFD700" if is_away_picked else "none"};">{g["away"]} (AWAY)</div>', unsafe_allow_html=True)
+            if not disabled_for_user:
+                if st.button(f"Select {g['away']}", key=f"btn_a_{g['id']}", use_container_width=True):
+                    conn = get_db_connection()
+                    cur = conn.cursor()
+                    if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                    else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                    conn.commit(); cur.close(); conn.close(); st.rerun()
         st.divider()
 else:
-    st.info("No games scheduled for this week or data loading.")
+    st.info("No games scheduled for this week or live data feed loading.")
 
 # 5. LIVE INDIVIDUAL DASHBOARD & SCORE COMPUTATION
 st.subheader(f"📊 Your Week {current_week} Tracker ({total_picks_made}/5 Picks)")
@@ -227,8 +226,7 @@ if games:
             game_points = home_cover_points if choice == "HOME" else -home_cover_points
             my_week_score += game_points
             st.write(f"🔹 {g['away']} @ {g['home']} | Selected: `{choice}` | Live Points: **{game_points:+.1f}**")
-        except StopIteration:
-            pass
+        except StopIteration: pass
 
 st.metric(label="Your Total Weekly Points", value=f"{my_week_score:+.1f}")
 
@@ -241,18 +239,15 @@ try:
     cur.execute("SELECT username, week, game_id, selected_team FROM user_picks")
     all_historical_picks = cur.fetchall()
     cur.close(); conn.close()
-except Exception:
-    pass
+except Exception: pass
 
 standings = {}
 group_weekly_picks = {}
 
 for p_user, p_week, p_gid, p_choice in all_historical_picks:
-    if p_user not in standings: 
-        standings[p_user] = 0.0
+    if p_user not in standings: standings[p_user] = 0.0
     if p_week == current_week:
-        if p_user not in group_weekly_picks: 
-            group_weekly_picks[p_user] = {}
+        if p_user not in group_weekly_picks: group_weekly_picks[p_user] = {}
         group_weekly_picks[p_user][p_gid] = p_choice
         
     try:
@@ -261,11 +256,10 @@ for p_user, p_week, p_gid, p_choice in all_historical_picks:
         margin = g['home_score'] - g['away_score']
         pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
         standings[p_user] += pts
-    except Exception:
-        pass
+    except Exception: pass
 
 try:
-    sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
+    sorted_standings = sorted(standings.items(), key=lambda x: x, reverse=True)
     for rank, (player, score) in enumerate(sorted_standings, 1):
         st.write(f"### {rank}. 👤 **{player.upper()}** — Total Season Score: `{score:+.1f}`")
         player_week_picks = group_weekly_picks.get(player, {})
@@ -274,14 +268,8 @@ try:
             for g_id, choice in player_week_picks.items():
                 try:
                     g = next(item for item in games if item["id"] == g_id)
-                    if g['status'] in ['in', 'post']:
-                        pick_displays.append(f"🟢 {g['home'] if choice == 'HOME' else g['away']}")
-                    else:
-                        pick_displays.append("🔒 *HIDDEN*")
-                except StopIteration: 
-                    pass
-            if pick_displays:
-                st.caption("Picks: " + " | ".join(pick_displays))
+                    pick_displays.append(f"🟢 {g['home'] if choice == 'HOME' else g['away']}")
+                except StopIteration: pass
+            if pick_displays: st.caption("Picks: " + " | ".join(pick_displays))
         st.divider()
-except Exception:
-    pass
+except Exception: pass
