@@ -174,6 +174,7 @@ if games:
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
         # STABLE CSS BUTTON TARGETING: Hooks to the unique custom layout string parameter keys
+               # REPLACE THIS EXACT BLOCK IN YOUR CODE:
         st.html(f"""
             <style>
             button[key="h_{g['id']}"] {{
@@ -190,7 +191,7 @@ if games:
             }}
             </style>
         """)
-        
+
         col1, col2 = st.columns(2)
         with col1:
             if st.button(f"{g['home']} (HOME)", key=f"h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
