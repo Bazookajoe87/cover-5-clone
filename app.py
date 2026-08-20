@@ -3,11 +3,9 @@ import requests
 import psycopg2
 from datetime import datetime
 
-# Secure Database Connection
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-# Upgraded Tables: Permanently archiving lines to prevent multi-week glitches
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -38,25 +36,23 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Ultimate Cover 5 Autopilot Platform")
 
-# Session Profile Login
 username = st.sidebar.text_input("Player Profile Username:", value="Player1").strip().lower()
 current_week = st.sidebar.selectbox("NFL Week Selector", list(range(1, 19)), index=0)
 
-# Bulletproof Data Ingestion Flow
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
     games_list = []
     try:
         res = requests.get(url).json()
-        if 'events' in res:
+        if 'events' in res and len(res['events']) > 0:
             for event in res['events']:
-                comp = event['competitions'][0]
+                comp = event['competitions']
                 status = event['status']['type']['state']
                 
                 espn_spread = 0.0
                 if 'odds' in comp and len(comp['odds']) > 0:
-                    details = comp['odds'][0].get('details', '')
+                    details = comp['odds'].get('details', '')
                     if details and "EVEN" not in details.upper() and "-" in details:
                         try:
                             espn_spread = float(details.split("-")[-1].strip())
@@ -73,20 +69,30 @@ def get_espn_data(week):
                         away_team, away_score = name, score
                         
                 games_list.append({
-                    "id": event['id'], "home": home_team, "away": away_team,
+                    "id": str(event['id']), "home": home_team, "away": away_team,
                     "home_score": home_score, "away_score": away_score,
                     "status": status, "espn_spread": espn_spread
                 })
     except Exception: pass
     
-    # Offseason / Preseason fallback matching actual opening week 1 slates
     if len(games_list) == 0 and week == 1:
         return [
-            {"id": "nfl_1", "away": "BAL", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.0},
-            {"id": "nfl_2", "away": "GB", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
-            {"id": "nfl_3", "away": "DAL", "home": "CLE", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
-            {"id": "nfl_4", "away": "NYJ", "home": "SF", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 4.5},
-            {"id": "nfl_5", "away": "LA", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5}
+            {"id": "2026_w1_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5},
+            {"id": "2026_w1_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
+            {"id": "2026_w1_g3", "away": "CHI", "home": "CAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -2.5},
+            {"id": "2026_w1_g4", "away": "BAL", "home": "COLS", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -3.5},
+            {"id": "2026_w1_g5", "away": "TB", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5},
+            {"id": "2026_w1_g6", "away": "ATL", "home": "PIT", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.0},
+            {"id": "2026_w1_g7", "away": "NYJ", "home": "TEN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -1.5},
+            {"id": "2026_w1_g8", "away": "NO", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 7.0},
+            {"id": "2026_w1_g9", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "pre", "espn_spread": -1.5},
+            {"id": "2026_w1_g10", "away": "CLE", "home": "JAX", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 7.0},
+            {"id": "2026_w1_g11", "away": "ARI", "home": "LAC", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 11.5},
+            {"id": "2026_w1_g12", "away": "GB", "home": "MIN", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
+            {"id": "2026_w1_g13", "away": "MIA", "home": "LV", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.0},
+            {"id": "2026_w1_g14", "away": "WSH", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 5.5},
+            {"id": "2026_w1_g15", "away": "DAL", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -2.5},
+            {"id": "2026_w1_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5}
         ]
     return games_list
 
@@ -104,7 +110,7 @@ try:
             cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
             row = cur.fetchone()
             if row and row[1]: continue
-            elif today_weekday == 1: # Auto-Freeze Spreads on Tuesday
+            elif today_weekday == 1: 
                 cur.execute("INSERT INTO spreads (game_id, week_num, spread_value, is_locked) VALUES (%s, %s, %s, TRUE) ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE", (g['id'], current_week, g['espn_spread']))
                 conn.commit()
             else:
@@ -130,12 +136,11 @@ if games:
         spread = float(db_spreads.get(g['id'], g['espn_spread']))
         line_display = f"{g['home']} -{abs(spread)}" if spread >= 0 else f"{g['home']} +{abs(spread)}"
         
-        # UI Visual Enhancements: Game Layout Cards
         with st.container():
-            col_match, col_btn1, col_btn2 = st.columns([3, 1, 1])
+            col_match, col_btn1, col_btn2 = st.columns([2, 1, 1])
             with col_match:
                 st.write(f"### {g['away']} @ {g['home']}")
-                st.caption(f"Line Baseline: {line_display} | Live Feed Status: {g['status'].upper()} ({g['away']} {g['away_score']} - {g['home_score']} {g['home']})")
+                st.caption(f"Line Baseline: {line_display} | Status: {g['status'].upper()} ({g['away']} {g['away_score']} - {g['home_score']} {g['home']})")
             
             game_started = g['status'] in ['in', 'post']
             is_home_picked = my_saved_picks.get(g['id']) == "HOME"
@@ -165,7 +170,7 @@ if games:
     for g_id, choice in my_saved_picks.items():
         try:
             g = next(item for item in games if item["id"] == g_id)
-            spread = float(db_spreads.get(g_id, 0.0))
+            spread = float(db_spreads.get(g_id, g['espn_spread']))
             margin = g['home_score'] - g['away_score']
             home_pts = margin - spread
             game_points = home_pts if choice == "HOME" else -home_pts
@@ -188,7 +193,7 @@ try:
         try:
             hist_games = get_espn_data(p_week)
             g = next(item for item in hist_games if item["id"] == p_gid)
-            s_val = float(db_spreads.get(p_gid, 0.0))
+            s_val = float(db_spreads.get(p_gid, g['espn_spread']))
             margin = g['home_score'] - g['away_score']
             pts = (margin - s_val) if p_choice == "HOME" else -(margin - s_val)
             standings[p_user] += pts
