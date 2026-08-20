@@ -42,7 +42,7 @@ st.title("🏈 Free Cover 5 League Engine")
 username = st.sidebar.text_input("Enter Your Name:", value="Player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
-# Master Data Dictionary mapping official NFL hex codes for layout injection
+# Master Data Dictionary mapping official NFL hex codes
 TEAM_COLORS = {
     "ARI": {"bg": "#97233F", "text": "#FFFFFF"}, "ATL": {"bg": "#A71930", "text": "#FFFFFF"},
     "BAL": {"bg": "#241773", "text": "#FFFFFF"}, "BUF": {"bg": "#00338D", "text": "#FFFFFF"},
@@ -72,9 +72,7 @@ def get_espn_data(week):
         if 'events' in res and len(res['events']) > 0:
             for event in res['events']:
                 comp = event['competitions']
-                if len(comp) == 0:
-                    continue
-                    
+                if len(comp) == 0: continue
                 status = event['status']['type']['state'] 
                 kickoff_str = event['date'] 
                 
@@ -82,36 +80,26 @@ def get_espn_data(week):
                 if 'odds' in comp and len(comp['odds']) > 0:
                     details = comp['odds'].get('details', '') 
                     if details and "EVEN" not in details.upper() and "-" in details:
-                        try:
-                            espn_spread = float(details.split("-")[-1].strip())
-                        except ValueError:
-                            pass
+                        try: espn_spread = float(details.split("-")[-1].strip())
+                        except ValueError: pass
                             
                 competitors = comp['competitors']
-                home_team = ""
-                away_team = ""
-                home_score = 0
-                away_score = 0
-                
+                home_team, away_team, home_score, away_score = "", "", 0, 0
                 for team_data in competitors:
                     team_name = team_data['team']['abbreviation']
                     raw_score = team_data.get('score', 0)
                     score_val = int(raw_score) if raw_score else 0
-                    
                     if team_data['homeAway'] == 'home':
-                        home_team = team_name
-                        home_score = score_val
+                        home_team, home_score = team_name, score_val
                     else:
-                        away_team = team_name
-                        away_score = score_val
+                        away_team, away_score = team_name, score_val
                 
                 games_list.append({
                     "id": str(event['id']), "home": home_team, "away": away_team,
                     "home_score": home_score, "away_score": away_score,
                     "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
                 })
-    except Exception:
-        pass
+    except Exception: pass
         
     # CORRECT 2026 NFL REGULAR SEASON WEEK 1 SCHEDULE FRAMEWORK
     if len(games_list) == 0 and week == 1:
@@ -178,7 +166,7 @@ if games:
         st.write(f"### 🏈 **{g['away']} @ {g['home']}** (Line: {display_line})")
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
-        game_started = g['status'] in ['in', 'post']
+        game_started = False
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
         has_this_game_picked = is_home_picked or is_away_picked
@@ -187,30 +175,42 @@ if games:
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
+        # Injection style sheet targeting the native Streamlit button faces directly
+        st.html(f"""
+            <style>
+            button[key="btn_h_{g['id']}"] {{
+                background-color: {h_style['bg']} !important; color: {h_style['text']} !important;
+                border: {"4px solid #FFD700" if is_home_picked else "1px solid transparent"} !important;
+                box-shadow: {"0px 0px 12px #FFD700" if is_home_picked else "none"} !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
+            }}
+            button[key="btn_a_{g['id']}"] {{
+                background-color: {a_style['bg']} !important; color: {a_style['text']} !important;
+                border: {"4px solid #FFD700" if is_away_picked else "1px solid transparent"} !important;
+                box-shadow: {"0px 0px 12px #FFD700" if is_away_picked else "none"} !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
+            }}
+            </style>
+        """)
+        
         col1, col2 = st.columns(2)
         with col1:
-            # Inline Styled HTML Buttons to guarantee theme matching
-            st.markdown(f'<div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:10px; text-align:center; font-weight:bold; border:{"4px solid #FFD700" if is_home_picked else "none"}; box-shadow:{"0px 0px 10px #FFD700" if is_home_picked else "none"};">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
-            if not disabled_for_user:
-                if st.button(f"Select {g['home']}", key=f"btn_h_{g['id']}", use_container_width=True):
-                    conn = get_db_connection()
-                    cur = conn.cursor()
-                    if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                    else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                    conn.commit(); cur.close(); conn.close(); st.rerun()
+            if st.button(f"{g['home']} (HOME)", key=f"btn_h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+                conn = get_db_connection()
+                cur = conn.cursor()
+                if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                conn.commit(); cur.close(); conn.close(); st.rerun()
                     
         with col2:
-            st.markdown(f'<div style="background-color:{a_style["bg"]}; color:{a_style["text"]}; border-radius:5px; padding:10px; text-align:center; font-weight:bold; border:{"4px solid #FFD700" if is_away_picked else "none"}; box-shadow:{"0px 0px 10px #FFD700" if is_away_picked else "none"};">{g["away"]} (AWAY)</div>', unsafe_allow_html=True)
-            if not disabled_for_user:
-                if st.button(f"Select {g['away']}", key=f"btn_a_{g['id']}", use_container_width=True):
-                    conn = get_db_connection()
-                    cur = conn.cursor()
-                    if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                    else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                    conn.commit(); cur.close(); conn.close(); st.rerun()
+            if st.button(f"{g['away']} (AWAY)", key=f"btn_a_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+                conn = get_db_connection()
+                cur = conn.cursor()
+                if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
+                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
+                conn.commit(); cur.close(); conn.close(); st.rerun()
         st.divider()
-else:
-    st.info("No games scheduled for this week or live data feed loading.")
+else: st.info("No games scheduled for this week or data loading.")
 
 # 5. LIVE INDIVIDUAL DASHBOARD & SCORE COMPUTATION
 st.subheader(f"📊 Your Week {current_week} Tracker ({total_picks_made}/5 Picks)")
