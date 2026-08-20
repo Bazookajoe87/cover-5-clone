@@ -7,7 +7,7 @@ from datetime import datetime
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-# Initialize Database Tables & Wipe Bad Data Clogs Automatically
+# Initialize Database Tables
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -26,8 +26,6 @@ def init_db():
             PRIMARY KEY (username, week, game_id)
         );
     """)
-    # AUTOMATED RESETS: Flushes old bad data entries causing the button lockups
-    cur.execute("DELETE FROM user_picks WHERE game_id NOT LIKE '2026_%';")
     conn.commit()
     cur.close()
     conn.close()
@@ -64,7 +62,7 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-# 2. Fetch NFL Schedule Framework
+# 2. Fetch Live NFL Schedule Framework
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
@@ -166,7 +164,7 @@ if games:
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
         has_this_game_picked = is_home_picked or is_away_picked
         
-        # FOOLPROOF ACCURATE 5-PICK CONSTRAINT RULES
+        # PRECISE 5-PICK UI CONTROLLER
         if total_picks_made >= 5:
             disabled_for_user = not has_this_game_picked
         else:
@@ -175,27 +173,27 @@ if games:
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
-        # INJECT COMPLETE THEME HOOKS DIRECTLY INTO NATIVE STREAMLIT BUTTON FACES
+        # STABLE CSS BUTTON TARGETING: Hooks to the unique custom layout string parameter keys
         st.html(f"""
             <style>
-            button[key="btn_h_{g['id']}"] {{
+            button[key="h_{g['id']}"] {{
                 background-color: {h_style['bg']} !important; color: {h_style['text']} !important;
                 border: {"4px solid #FFD700" if is_home_picked else "1px solid transparent"} !important;
                 box-shadow: {"0px 0px 15px #FFD700" if is_home_picked else "none"} !important;
-                font-size: 16px !important; font-weight: bold !important; height: 52px !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
             }}
-            button[key="btn_a_{g['id']}"] {{
+            button[key="a_{g['id']}"] {{
                 background-color: {a_style['bg']} !important; color: {a_style['text']} !important;
                 border: {"4px solid #FFD700" if is_away_picked else "1px solid transparent"} !important;
                 box-shadow: {"0px 0px 15px #FFD700" if is_away_picked else "none"} !important;
-                font-size: 16px !important; font-weight: bold !important; height: 52px !important;
+                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
             }}
             </style>
         """)
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(f"{g['home']} (HOME)", key=f"btn_h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+            if st.button(f"{g['home']} (HOME)", key=f"h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
                 conn = get_db_connection()
                 cur = conn.cursor()
                 if is_home_picked: 
@@ -206,7 +204,7 @@ if games:
                 st.rerun()
                     
         with col2:
-            if st.button(f"{g['away']} (AWAY)", key=f"btn_a_{g['id']}", disabled=disabled_for_user, use_container_width=True):
+            if st.button(f"{g['away']} (AWAY)", key=f"a_{g['id']}", disabled=disabled_for_user, use_container_width=True):
                 conn = get_db_connection()
                 cur = conn.cursor()
                 if is_away_picked: 
@@ -265,7 +263,7 @@ for p_user, p_week, p_gid, p_choice in all_historical_picks:
     except Exception: pass
 
 try:
-    sorted_standings = sorted(standings.items(), key=lambda x: x, reverse=True)
+    sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
     for rank, (player, score) in enumerate(sorted_standings, 1):
         st.write(f"### {rank}. 👤 **{player.upper()}** — Total Season Score: `{score:+.1f}`")
         player_week_picks = group_weekly_picks.get(player, {})
@@ -279,3 +277,6 @@ try:
             if pick_displays: st.caption("Picks: " + " | ".join(pick_displays))
         st.divider()
 except Exception: pass
+
+    
+     
