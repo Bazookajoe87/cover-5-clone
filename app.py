@@ -9,6 +9,7 @@ def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
 # Initialize Database Tables
+# Initialize Database Tables & Auto-Scrub Old Testing Rows
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -27,6 +28,8 @@ def init_db():
             PRIMARY KEY (username, week, game_id)
         );
     """)
+    # THIS IS THE FIX (Line 30): Clears old testing data so you get a full 5/5 slots
+    cur.execute("DELETE FROM user_picks WHERE game_id NOT LIKE '2026_%';")
     conn.commit()
     cur.close()
     conn.close()
