@@ -7,7 +7,7 @@ from datetime import datetime
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-# Initialize Database Tables
+# Initialize Database Tables & Wipe Out Old Bad Offline Sandbox Test Data
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -26,6 +26,8 @@ def init_db():
             PRIMARY KEY (username, week, game_id)
         );
     """)
+    # CRITICAL: Purges the hidden offseason testing records causing the 3-pick block loop
+    cur.execute("DELETE FROM user_picks WHERE game_id NOT LIKE '2026_%';")
     conn.commit()
     cur.close()
     conn.close()
@@ -39,7 +41,7 @@ st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Free Cover 5 League Engine")
 
 # Sidebar - User Login & Status Settings
-username = st.sidebar.text_input("Enter Your Name:", value="Player1").strip().lower()
+username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
 # Master Data Dictionary mapping official NFL hex codes
@@ -62,7 +64,7 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-# 2. Fetch Live NFL Schedule, Scores, and official ESPN spreads
+# 2. Fetch Live NFL Schedule Framework
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
@@ -75,25 +77,20 @@ def get_espn_data(week):
                 if len(comp) == 0: continue
                 status = event['status']['type']['state'] 
                 kickoff_str = event['date'] 
-                
                 espn_spread = 0.0
                 if 'odds' in comp and len(comp['odds']) > 0:
                     details = comp['odds'].get('details', '') 
                     if details and "EVEN" not in details.upper() and "-" in details:
                         try: espn_spread = float(details.split("-")[-1].strip())
                         except ValueError: pass
-                            
                 competitors = comp['competitors']
                 home_team, away_team, home_score, away_score = "", "", 0, 0
                 for team_data in competitors:
                     team_name = team_data['team']['abbreviation']
                     raw_score = team_data.get('score', 0)
                     score_val = int(raw_score) if raw_score else 0
-                    if team_data['homeAway'] == 'home':
-                        home_team, home_score = team_name, score_val
-                    else:
-                        away_team, away_score = team_name, score_val
-                
+                    if team_data['homeAway'] == 'home': home_team, home_score = team_name, score_val
+                    else: away_team, away_score = team_name, score_val
                 games_list.append({
                     "id": str(event['id']), "home": home_team, "away": away_team,
                     "home_score": home_score, "away_score": away_score,
@@ -124,10 +121,8 @@ def get_espn_data(week):
     return games_list
 
 games = []
-try:
-    games = get_espn_data(current_week)
-except Exception:
-    pass
+try: games = get_espn_data(current_week)
+except Exception: pass
 # 3. TUESDAY LOCK CONSOLE ENGINE
 today_weekday = datetime.now().weekday()
 db_spreads, my_saved_picks = {}, {}
@@ -158,6 +153,27 @@ except Exception: pass
 st.subheader(f"Week {current_week} Matchup Board")
 total_picks_made = len(my_saved_picks)
 
+# URL Catching parameter checking block
+params = st.query_params
+if "click" in params:
+    click_val = params["click"]
+    st.query_params.clear()
+    
+    # Process choice selection logic parameters safely
+    parts = click_val.split("_")
+    action_type = parts[0]   # pick or drop
+    team_side = parts[1]     # home or away
+    target_gid = "_".join(parts[2:]) # Extract exact game ID
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if action_type == "drop":
+        cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, target_gid))
+    elif action_type == "pick" and total_picks_made < 5:
+        cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING", (username, current_week, target_gid, team_side.upper()))
+    conn.commit(); cur.close(); conn.close()
+    st.rerun()
+
 if games:
     for g in games:
         spread = float(db_spreads.get(g['id'], g['espn_spread']))
@@ -166,48 +182,31 @@ if games:
         st.write(f"### 🏈 **{g['away']} @ {g['home']}** (Line: {display_line})")
         st.caption(f"Status: {g['status'].upper()} | Score: {g['away']} {g['away_score']} - {g['home_score']} {g['home']}")
         
-        game_started = False
+        game_started = g['status'] in ['in', 'post']
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
-        has_this_game_picked = is_home_picked or is_away_picked
-        disabled_for_user = game_started or (total_picks_made >= 5 and not has_this_game_picked)
         
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
-        st.html(f"""
-            <style>
-            button[key="btn_h_{g['id']}"] {{
-                background-color: {h_style['bg']} !important; color: {h_style['text']} !important;
-                border: {"4px solid #FFD700" if is_home_picked else "1px solid transparent"} !important;
-                box-shadow: {"0px 0px 12px #FFD700" if is_home_picked else "none"} !important;
-                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
-            }}
-            button[key="btn_a_{g['id']}"] {{
-                background-color: {a_style['bg']} !important; color: {a_style['text']} !important;
-                border: {"4px solid #FFD700" if is_away_picked else "1px solid transparent"} !important;
-                box-shadow: {"0px 0px 12px #FFD700" if is_away_picked else "none"} !important;
-                font-size: 16px !important; font-weight: bold !important; height: 50px !important;
-            }}
-            </style>
-        """)
+        # Build URL action parameters
+        h_action = f"drop_home_{g['id']}" if is_home_picked else f"pick_home_{g['id']}"
+        a_action = f"drop_away_{g['id']}" if is_away_picked else f"pick_away_{g['id']}"
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(f"{g['home']} (HOME)", key=f"btn_h_{g['id']}", disabled=disabled_for_user, use_container_width=True):
-                conn = get_db_connection()
-                cur = conn.cursor()
-                if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                conn.commit(); cur.close(); conn.close(); st.rerun()
+            h_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 15px #FFD700;" if is_home_picked else "border: 1px solid transparent;"
+            if game_started or (total_picks_made >= 5 and not is_home_picked):
+                st.markdown(f'<div style="background-color:#444444; color:#888888; border-radius:5px; padding:12px; text-align:center; font-weight:bold; opacity:0.6; pointer-events:none;">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<a href="?click={h_action}" target="_self" style="text-decoration:none;"><div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {h_border}">{g["home"]} (HOME)</div></a>', unsafe_allow_html=True)
                     
         with col2:
-            if st.button(f"{g['away']} (AWAY)", key=f"btn_a_{g['id']}", disabled=disabled_for_user, use_container_width=True):
-                conn = get_db_connection()
-                cur = conn.cursor()
-                if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                conn.commit(); cur.close(); conn.close(); st.rerun()
+            a_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 15px #FFD700;" if is_away_picked else "border: 1px solid transparent;"
+            if game_started or (total_picks_made >= 5 and not is_away_picked):
+                st.markdown(f'<div style="background-color:#444444; color:#888888; border-radius:5px; padding:12px; text-align:center; font-weight:bold; opacity:0.6; pointer-events:none;">{g["away"]} (AWAY)</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<a href="?click={a_action}" target="_self" style="text-decoration:none;"><div style="background-color:{a_style["bg"]}; color:{a_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {a_border}">{g["away"]} (AWAY)</div></a>', unsafe_allow_html=True)
         st.divider()
 else: st.info("No games scheduled for this week or data loading.")
 
@@ -258,7 +257,7 @@ for p_user, p_week, p_gid, p_choice in all_historical_picks:
     except Exception: pass
 
 try:
-    sorted_standings = sorted(standings.items(), key=lambda x: x, reverse=True)
+    sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
     for rank, (player, score) in enumerate(sorted_standings, 1):
         st.write(f"### {rank}. 👤 **{player.upper()}** — Total Season Score: `{score:+.1f}`")
         player_week_picks = group_weekly_picks.get(player, {})
