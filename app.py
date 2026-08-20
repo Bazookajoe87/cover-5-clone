@@ -2,14 +2,12 @@ import streamlit as st
 import requests
 import psycopg2
 from datetime import datetime
-import streamlit.components.v1 as components
 
 # 1. Connect to your free Neon/Supabase database
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
 # Initialize Database Tables
-# Initialize Database Tables & Auto-Scrub Old Testing Rows
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -28,8 +26,6 @@ def init_db():
             PRIMARY KEY (username, week, game_id)
         );
     """)
-    # THIS IS THE FIX (Line 30): Clears old testing data so you get a full 5/5 slots
-    cur.execute("DELETE FROM user_picks WHERE game_id NOT LIKE '2026_%';")
     conn.commit()
     cur.close()
     conn.close()
@@ -43,7 +39,7 @@ st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Free Cover 5 League Engine")
 
 # Sidebar - User Login & Status Settings
-username = st.sidebar.text_input("Enter Your Name:", value="Player1").strip().lower()
+username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
 # Master Data Dictionary mapping official NFL hex codes
@@ -66,7 +62,7 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-# 2. Fetch Live NFL Schedule, Scores, and official ESPN spreads
+# 2. Fetch Live NFL Schedule Framework
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
@@ -79,25 +75,20 @@ def get_espn_data(week):
                 if len(comp) == 0: continue
                 status = event['status']['type']['state'] 
                 kickoff_str = event['date'] 
-                
                 espn_spread = 0.0
                 if 'odds' in comp and len(comp['odds']) > 0:
                     details = comp['odds'].get('details', '') 
                     if details and "EVEN" not in details.upper() and "-" in details:
                         try: espn_spread = float(details.split("-")[-1].strip())
                         except ValueError: pass
-                            
                 competitors = comp['competitors']
                 home_team, away_team, home_score, away_score = "", "", 0, 0
                 for team_data in competitors:
                     team_name = team_data['team']['abbreviation']
                     raw_score = team_data.get('score', 0)
                     score_val = int(raw_score) if raw_score else 0
-                    if team_data['homeAway'] == 'home':
-                        home_team, home_score = team_name, score_val
-                    else:
-                        away_team, away_score = team_name, score_val
-                
+                    if team_data['homeAway'] == 'home': home_team, home_score = team_name, score_val
+                    else: away_team, away_score = team_name, score_val
                 games_list.append({
                     "id": str(event['id']), "home": home_team, "away": away_team,
                     "home_score": home_score, "away_score": away_score,
@@ -128,10 +119,8 @@ def get_espn_data(week):
     return games_list
 
 games = []
-try:
-    games = get_espn_data(current_week)
-except Exception:
-    pass
+try: games = get_espn_data(current_week)
+except Exception: pass
 # 3. TUESDAY LOCK CONSOLE ENGINE
 today_weekday = datetime.now().weekday()
 db_spreads, my_saved_picks = {}, {}
@@ -162,6 +151,26 @@ except Exception: pass
 st.subheader(f"Week {current_week} Matchup Board")
 total_picks_made = len(my_saved_picks)
 
+# URL Catching parameter checking block
+params = st.query_params
+if "click" in params:
+    click_val = params["click"]
+    st.query_params.clear()
+    
+    parts = click_val.split("_")
+    action_type = parts[0]   # drop or pick
+    team_side = parts[1]     # home or away
+    target_gid = "_".join(parts[2:]) # Extract target game ID
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if action_type == "drop":
+        cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, target_gid))
+    elif action_type == "pick" and total_picks_made < 5:
+        cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING", (username, current_week, target_gid, team_side.upper()))
+    conn.commit(); cur.close(); conn.close()
+    st.rerun()
+
 if games:
     for g in games:
         spread = float(db_spreads.get(g['id'], g['espn_spread']))
@@ -173,83 +182,29 @@ if games:
         game_started = False
         is_home_picked = my_saved_picks.get(g['id']) == "HOME"
         is_away_picked = my_saved_picks.get(g['id']) == "AWAY"
-        has_this_game_picked = is_home_picked or is_away_picked
         
-        # FIXED CONTROLLER: Strictly allows you to make picks up to exactly 5
-        if total_picks_made >= 5:
-            disabled_for_user = not has_this_game_picked
-        else:
-            disabled_for_user = False
-
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
-              # THE FIX: Defines your gold highlight borders before building columns
-        h_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_home_picked else "border: 1px solid transparent;"
-        a_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_away_picked else "border: 1px solid transparent;"
-
+        h_action = f"drop_home_{g['id']}" if is_home_picked else f"pick_home_{g['id']}"
+        a_action = f"drop_away_{g['id']}" if is_away_picked else f"pick_away_{g['id']}"
+        
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f'<div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {h_border}">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
-            if not disabled_for_user:
-                if st.button(f"Select {g['home']}", key=f"btn_h_{g['id']}", use_container_width=True):
-                    conn = get_db_connection()
-                    cur = conn.cursor()
-                    if is_home_picked: 
-                        cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                    else: 
-                        cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                    conn.commit(); cur.close(); conn.close()
-                    st.rerun()
+            h_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 15px #FFD700;" if is_home_picked else "border: 1px solid transparent;"
+            if game_started or (total_picks_made >= 5 and not is_home_picked):
+                st.markdown(f'<div style="background-color:#444444; color:#888888; border-radius:5px; padding:15px; text-align:center; font-weight:bold; opacity:0.5; pointer-events:none;">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<a href="?click={h_action}" target="_self" style="text-decoration:none;"><div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:15px; text-align:center; font-weight:bold; {h_border}">{g["home"]} (HOME)</div></a>', unsafe_allow_html=True)
                     
         with col2:
-            st.markdown(f'<div style="background-color:{a_style["bg"]}; color:{a_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {a_border}">{g["away"]} (AWAY)</div>', unsafe_allow_html=True)
-            if not disabled_for_user:
-                if st.button(f"Select {g['away']}", key=f"btn_a_{g['id']}", use_container_width=True):
-                    conn = get_db_connection()
-                    cur = conn.cursor()
-                    if is_away_picked: 
-                        cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-                    else: 
-                        cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-                    conn.commit(); cur.close(); conn.close()
-                    st.rerun()
-
-        
-        # Unified Event Receiver listening to the direct color panels
-        # Captures click coordinates and pushes to the backend SQL cluster immediately
-        if f"pick_home_{g['id']}" in st.session_state.get("last_click", ""):
-            st.session_state["last_click"] = ""
-            conn = get_db_connection()
-            cur = conn.cursor()
-            if is_home_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-            else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'HOME') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-            conn.commit(); cur.close(); conn.close(); st.rerun()
-            
-        if f"pick_away_{g['id']}" in st.session_state.get("last_click", ""):
-            st.session_state["last_click"] = ""
-            conn = get_db_connection()
-            cur = conn.cursor()
-            if is_away_picked: cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g['id']))
-            else: cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
-            conn.commit(); cur.close(); conn.close(); st.rerun()
+            a_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 15px #FFD700;" if is_away_picked else "border: 1px solid transparent;"
+            if game_started or (total_picks_made >= 5 and not is_away_picked):
+                st.markdown(f'<div style="background-color:#444444; color:#888888; border-radius:5px; padding:15px; text-align:center; font-weight:bold; opacity:0.5; pointer-events:none;">{g["away"]} (AWAY)</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<a href="?click={a_action}" target="_self" style="text-decoration:none;"><div style="background-color:{a_style["bg"]}; color:{a_style["text"]}; border-radius:5px; padding:15px; text-align:center; font-weight:bold; {a_border}">{g["away"]} (AWAY)</div></a>', unsafe_allow_html=True)
         st.divider()
 else: st.info("No games scheduled for this week or data loading.")
-
-# Javascript event catcher bridging iframe clicks to Streamlit session history
-st.html("""
-    <script>
-    window.addEventListener('message', function(e) {
-        if (typeof e.data === 'string') {
-            const sidebar = window.parent.document.querySelector('.stTextInput input');
-            if(sidebar) {
-                const r = window.parent.document.createElement('input');
-                window.parent.postMessage({type: 'streamlit:setComponentValue', value: e.data}, '*');
-            }
-        }
-    });
-    </script>
-""")
 
 # 5. LIVE INDIVIDUAL DASHBOARD & SCORE COMPUTATION
 st.subheader(f"📊 Your Week {current_week} Tracker ({total_picks_made}/5 Picks)")
