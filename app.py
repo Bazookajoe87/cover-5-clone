@@ -184,7 +184,7 @@ if games:
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
-             col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
         with col1:
             # Displays the team color panel card
             st.markdown(f'<div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {h_border}">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
