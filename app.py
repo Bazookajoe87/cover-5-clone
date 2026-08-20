@@ -184,12 +184,13 @@ if games:
         h_style = TEAM_COLORS.get(g['home'], {"bg": "#777777", "text": "#FFFFFF"})
         a_style = TEAM_COLORS.get(g['away'], {"bg": "#777777", "text": "#FFFFFF"})
         
+              # THE FIX: Defines your gold highlight borders before building columns
+        h_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_home_picked else "border: 1px solid transparent;"
+        a_border = "border: 4px solid #FFD700; box-shadow: 0px 0px 12px #FFD700;" if is_away_picked else "border: 1px solid transparent;"
+
         col1, col2 = st.columns(2)
         with col1:
-            # Displays the team color panel card
             st.markdown(f'<div style="background-color:{h_style["bg"]}; color:{h_style["text"]}; border-radius:5px; padding:12px; text-align:center; font-weight:bold; {h_border}">{g["home"]} (HOME)</div>', unsafe_allow_html=True)
-            
-            # Interactive click button that logs selection and forces tracker to show it live
             if not disabled_for_user:
                 if st.button(f"Select {g['home']}", key=f"btn_h_{g['id']}", use_container_width=True):
                     conn = get_db_connection()
@@ -213,6 +214,7 @@ if games:
                         cur.execute("INSERT INTO user_picks (username, week, game_id, selected_team) VALUES (%s, %s, %s, 'AWAY') ON CONFLICT DO NOTHING", (username, current_week, g['id']))
                     conn.commit(); cur.close(); conn.close()
                     st.rerun()
+
         
         # Unified Event Receiver listening to the direct color panels
         # Captures click coordinates and pushes to the backend SQL cluster immediately
