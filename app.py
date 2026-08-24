@@ -18,8 +18,11 @@ def init_db():
                     spread_value NUMERIC(3,1) DEFAULT 0.0,
                     is_locked BOOLEAN DEFAULT FALSE
                 );
-               ALTER TABLE spreads ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
+                
+                -- Ensure old databases have the correct structural columns
+                ALTER TABLE spreads ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
                 ALTER TABLE spreads ADD COLUMN IF NOT EXISTS week_num INT;
+
                 CREATE TABLE IF NOT EXISTS user_picks (
                     username TEXT,
                     week INT,
@@ -73,7 +76,7 @@ def get_espn_data(week):
             for event in res['events']:
                 comp = event['competitions']
                 status = event['status']['type']['state'] 
-                kickoff_str = event['date'] 
+                kickoff_str = event['date'] # Format: "2026-09-10T23:20Z"
                 espn_spread = 0.0
                 
                 if 'odds' in comp and len(comp['odds']) > 0:
@@ -103,12 +106,25 @@ def get_espn_data(week):
     except Exception:
         pass
         
+    # Full 16-Matchup Safety Matrix (Ensures you always see all games even if ESPN drops out)
     if len(games_list) == 0:
         return [
-            {"id": f"2026_w{week}_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 3.5},
-            {"id": f"2026_w{week}_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": 2.5},
-            {"id": f"2026_w{week}_g3", "away": "CHI", "home": "CAR", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -2.5},
-            {"id": f"2026_w{week}_g4", "away": "BAL", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "espn_spread": -3.5}
+            {"id": f"26_w{week}_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
+            {"id": f"26_w{week}_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 2.5},
+            {"id": f"26_w{week}_g3", "away": "CHI", "home": "CAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -2.5},
+            {"id": f"26_w{week}_g4", "away": "BAL", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -3.5},
+            {"id": f"26_w{week}_g5", "away": "TB", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
+            {"id": f"26_w{week}_g6", "away": "ATL", "home": "PIT", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 1.5},
+            {"id": f"26_w{week}_g7", "away": "NYJ", "home": "TEN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -1.0},
+            {"id": f"26_w{week}_g8", "away": "NO", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 6.5},
+            {"id": f"26_w{week}_g9", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -2.0},
+            {"id": f"26_w{week}_g10", "away": "CLE", "home": "JAX", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.0},
+            {"id": f"26_w{week}_g11", "away": "ARI", "home": "LAC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:05Z", "espn_spread": 7.5},
+            {"id": f"26_w{week}_g12", "away": "GB", "home": "MIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 1.5},
+            {"id": f"26_w{week}_g13", "away": "MIA", "home": "LV", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 4.0},
+            {"id": f"26_w{week}_g14", "away": "WSH", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 5.5},
+            {"id": f"26_w{week}_g15", "away": "DAL", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-14T00:20Z", "espn_spread": -3.0},
+            {"id": f"26_w{week}_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-15T00:15Z", "espn_spread": 9.5}
         ]
     return games_list
 
@@ -147,24 +163,20 @@ try:
             my_saved_picks = dict(cur.fetchall())
 except Exception as e:
     st.error(f"Error handling live data: {e}")
-# HARD VALIDATION ENGINE: Saves a pick or rejects if the player hits the cap
+# HARD VALIDATION ENGINE: Enforces the 5 pick limit rules
 def save_pick(game_id, team_selected):
-    # Fetch current database pick entries directly before attempting a write
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT game_id FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
                 existing_picks = [row[0] for row in cur.fetchall()]
                 
-                # Rule Check: Is this a modification of an existing game choice?
                 is_updating_existing_game = game_id in existing_picks
                 
-                # Enforce Hard Cap Limit 
                 if len(existing_picks) >= 5 and not is_updating_existing_game:
                     st.toast("🚨 Rule Limit: You can only select a maximum of 5 teams per week!", icon="❌")
                     return False
                 
-                # Proceed with secure database save if validation passes
                 cur.execute("""
                     INSERT INTO user_picks (username, week, game_id, selected_team) 
                     VALUES (%s, %s, %s, %s)
@@ -178,53 +190,61 @@ def save_pick(game_id, team_selected):
         st.error(f"Failed saving pick: {e}")
         return False
 
-# UI Board Display Configuration
+# Display Header Status Board Indicators
 st.subheader(f"Week {current_week} Matchups Board")
-st.caption("Pick exactly 5 games against the spread. Your layout lock validation handles restrictions live.")
+st.caption("Review all games. Select up to 5 teams against the line. Change picks at any point prior to kickoff.")
 
-# Track live selection metric layout counts
 current_pick_count = len(my_saved_picks)
 if current_pick_count == 5:
-    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta="Locked In", delta_color="normal")
+    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta="Selections Locked In", delta_color="normal")
 else:
-    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta=f"{5 - current_pick_count} open spots left", delta_color="off")
+    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta=f"{5 - current_pick_count} spaces available", delta_color="off")
 
-# Render matching game cards into the layout
+# Render matching game cards into the board interface
 for game in games:
     g_id = game["id"]
     spread = db_spreads.get(g_id, game["espn_spread"])
     
+    # KICKOFF LOCK LOGIC: Parse string timestamps safely to handle real-time enforcement
+    is_game_locked = game["status"] != "pre"
+    try:
+        if "Z" in game["kickoff"]:
+            # Clean string time formats to evaluate native datetimes
+            ko_time = datetime.strptime(game["kickoff"], "%Y-%m-%dT%H:%MfZ")
+            if datetime.utcnow() >= ko_time:
+                is_game_locked = True
+    except Exception:
+        pass
+
     with st.container(border=True):
-        col1, col2, col3 = st.columns(3)
-        
-        # Check current choice state parameters
-        is_away_picked = my_saved_picks.get(g_id) == game["away"]
-        is_home_picked = my_saved_picks.get(g_id) == game["home"]
+        col1, col2, col3 = st.columns(3) # Explicit column parameters fix layout crashes
         
         with col1:
             style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
             st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['away']} (Away)</div>", unsafe_allow_html=True)
-            if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=(game["status"] != "pre")):
+            if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                 if save_pick(g_id, game["away"]):
                     st.rerun()
                 
         with col2:
             st.markdown("<h4 style='text-align: center; margin: 0;'>VS</h4>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align: center; color: #888;'>Spread: {spread}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #888; font-weight: bold;'>Spread: {spread}</p>", unsafe_allow_html=True)
+            
+            # Selection Handling Interface
             if my_saved_picks.get(g_id):
-                st.success(f"Selected: {my_saved_picks.get(g_id)}")
-                if st.button("❌ Clear Pick", key=f"clear_{g_id}"):
+                st.info(f"👉 Current Choice: **{my_saved_picks.get(g_id)}**")
+                if st.button("❌ Unselect Choice", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
                     with get_db_connection() as conn:
                         with conn.cursor() as cur:
                             cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                             conn.commit()
                     st.rerun()
+            else:
+                st.markdown("<p style='text-align: center; color: #aaa; font-style: italic;'>No Selection</p>", unsafe_allow_html=True)
             
         with col3:
             style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
             st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['home']} (Home)</div>", unsafe_allow_html=True)
-            if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=(game["status"] != "pre")):
+            if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                 if save_pick(g_id, game["home"]):
                     st.rerun()
-
-
