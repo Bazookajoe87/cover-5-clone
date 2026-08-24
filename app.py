@@ -170,7 +170,6 @@ def save_pick(game_id, team_selected):
             with conn.cursor() as cur:
                 cur.execute("SELECT game_id FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
                 
-                # 🚨 FIXED LINE: Extract the string out of the database row tuple cleanly
                 existing_picks = [row[0] for row in cur.fetchall()]
                 
                 is_updating_existing_game = game_id in existing_picks
