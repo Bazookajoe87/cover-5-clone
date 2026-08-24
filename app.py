@@ -467,20 +467,22 @@ with tab3:
                         season_leaderboard[player]["Total Points"] += (applied * -7)
                         season_leaderboard[player]["Penalties"] += applied
 
+                # 🚨 FULLY ALIGNED REPLACEMENT BLOCK FOR THE BOTTOM OF BOX 4:
         sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
         
-       season_rows = []
-       for rank, (player, stats) in enumerate(sorted_season, start=1):
-            # Safe extraction: if player is a tuple, grab the first element
+        season_rows = []
+        for rank, (player, stats) in enumerate(sorted_season, start=1):
+            # Safe extraction: if player is a database tuple, pull the first string element out safely
             player_str = player[0] if isinstance(player, tuple) else player
             
             season_rows.append({
                 "Rank": f"#{rank}",
-                "Player": str(player_str).upper(), # Safely forces a string conversion before capitalization
+                "Player": str(player_str).upper(),
                 "Overall Score": f"{stats['Total Points']} pts",
                 "Record (W-L-P)": f"{stats['Wins']} - {stats['Losses']} - {stats['Pushes']}",
                 "Missed Selection Penalties": f"{stats['Penalties']} applied"
-             })
+            })
+            
         st.dataframe(season_rows, use_container_width=True, hide_index=True)
     else:
         st.info("🏆 Historical season data records are currently empty. Complete weekly games to build standings entries!")
