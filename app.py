@@ -170,7 +170,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
-# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (PLACE DIRECTLY UNDER BOX 1)
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (STREAMLINED MOBILE LAYOUT)
 # =====================================================================
 with tab1:
     def save_pick(game_id, team_selected):
@@ -178,7 +178,7 @@ with tab1:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT game_id FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
-                    existing_picks = [row[0] for row in cur.fetchall()]
+                    existing_picks = [row for row in cur.fetchall()]
                     
                     is_updating_existing_game = game_id in existing_picks
                     
@@ -201,32 +201,27 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # 🌟 NEW TWEAK: HORIZONTAL "MY SLIP" ROW
+    # 🎫 My Active Slip Tracker Row
     if my_saved_picks:
         st.markdown("### 🎫 My Current Slip")
-        # Generate up to 5 equal columns side-by-side for active selections
         slip_cols = st.columns(len(my_saved_picks))
         for index, (g_id, chosen_team) in enumerate(my_saved_picks.items()):
             with slip_cols[index]:
                 style = TEAM_COLORS.get(chosen_team, {"bg": "#333", "text": "#fff"})
                 st.markdown(
                     f"""<div style='background-color:{style['bg']}; color:{style['text']}; 
-                    padding:8px; border-radius:5px; text-align:center; font-weight:bold; 
+                    padding:6px; border-radius:5px; text-align:center; font-weight:bold; 
                     box-shadow: 2px 2px 5px rgba(0,0,0,0.15); font-size:14px;'>
                     🏈 {chosen_team}
                     </div>""", 
                     unsafe_allow_html=True
                 )
         st.divider()
-    else:
-        st.info("💡 Your betting slip is currently empty. Click teams below to fill your 5 spots!")
 
     current_pick_count = len(my_saved_picks)
-    if current_pick_count == 5:
-        st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta="Selections Locked In", delta_color="normal")
-    else:
-        st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta=f"{5 - current_pick_count} spaces available", delta_color="off")
+    st.caption(f"**Selections:** {current_pick_count} / 5 Locked In")
 
+    # Render Matchups Using Streamlined App Layout
     for game in games:
         g_id = game["id"]
         spread = db_spreads.get(g_id, game["espn_spread"])
@@ -240,38 +235,56 @@ with tab1:
         except Exception:
             pass
 
+        # 🎨 STYLING: Native App row alignment layout block
+        style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
+        style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
+        
+        # Display selected accent glow borders
+        current_pick = my_saved_picks.get(g_id)
+        border_glow = "border-left: 5px solid #0080C6;" if current_pick else "border-left: 1px solid #ddd;"
+
         with st.container(border=True):
-            col1, col2, col3 = st.columns(3)
+            # Compact HTML header mapping for the row layout
+            spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
-            with col1:
-                style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
-                st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['away']} (Away)</div>", unsafe_allow_html=True)
+            # Formulate selection tracking details inside the middle section
+            center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold;'>LINE: {spread_str}</div>"
+            if current_pick:
+                center_display_html = f"<div style='text-align:center; color:#0080C6; font-size:12px; font-weight:bold;'>🎯 SELECTED: {current_pick}</div>"
+
+            # Render HTML layout wrapper
+            st.markdown(
+                f"""
+                <div style='display: flex; justify-content: space-between; align-items: center; padding: 2px 0; {border_glow}'>
+                    <div style='width: 35%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 14px;'>
+                        {game['away']}
+                    </div>
+                    <div style='width: 30%; text-align: center;'>
+                        {center_display_html}
+                    </div>
+                    <div style='width: 35%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 14px;'>
+                        {game['home']}
+                    </div>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+            # Interactive Click Buttons directly below the row structure
+            btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
+            with btn_col1:
                 if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
                         st.rerun()
-                    
-            with col2:
-                st.markdown("<h4 style='text-align: center; margin: 0;'>VS</h4>", unsafe_allow_html=True)
-                
-                if spread < 0:
-                    st.markdown(f"<p style='text-align: center; color: #FB4F14; font-weight: bold; margin: 5px 0;'>🔥 Favorite: {game['away']} ({spread})</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<p style='text-align: center; color: #0080C6; font-weight: bold; margin: 5px 0;'>🔥 Favorite: {game['home']} (-{spread})</p>", unsafe_allow_html=True)
-                
-                if my_saved_picks.get(g_id):
-                    st.info(f"👉 Current Choice: **{my_saved_picks.get(g_id)}**")
-                    if st.button("❌ Unselect Choice", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
+            with btn_col2:
+                if current_pick:
+                    if st.button("❌ Clear", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                                 conn.commit()
                         st.rerun()
-                else:
-                    st.markdown("<p style='text-align: center; color: #aaa; font-style: italic; margin-top: 5px;'>No Selection</p>", unsafe_allow_html=True)
-                
-            with col3:
-                style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
-                st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['home']} (Home)</div>", unsafe_allow_html=True)
+            with btn_col3:
                 if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
                         st.rerun()
