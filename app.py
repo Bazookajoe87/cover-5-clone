@@ -3,11 +3,12 @@ import requests
 import psycopg2
 from datetime import datetime
 
-# Initialize Database Connection with automated resource cleanup
+# =====================================================================
+# 🔌 BOX 1: DATABASE SETUP, IMPORTS, AND DATA ENGINE
+# =====================================================================
 def get_db_connection():
     return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-# Initialize Database Tables cleanly
 def init_db():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -18,8 +19,6 @@ def init_db():
                     spread_value NUMERIC(3,1) DEFAULT 0.0,
                     is_locked BOOLEAN DEFAULT FALSE
                 );
-                
-                -- Ensure old databases have the correct structural columns
                 ALTER TABLE spreads ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
                 ALTER TABLE spreads ADD COLUMN IF NOT EXISTS week_num INT;
 
@@ -41,11 +40,9 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Free Cover 5 League Engine")
 
-# Sidebar Configuration
 username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
-# Complete NFL Hex Color Palette
 TEAM_COLORS = {
     "ARI": {"bg": "#97233F", "text": "#FFFFFF"}, "ATL": {"bg": "#A71930", "text": "#FFFFFF"},
     "BAL": {"bg": "#241773", "text": "#FFFFFF"}, "BUF": {"bg": "#00338D", "text": "#FFFFFF"},
@@ -65,7 +62,6 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-# Fetch Live NFL Schedule Framework via Core API Endpoints
 @st.cache_data(ttl=300) 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
@@ -76,7 +72,7 @@ def get_espn_data(week):
             for event in res['events']:
                 comp = event['competitions']
                 status = event['status']['type']['state'] 
-                kickoff_str = event['date'] # Format: "2026-09-10T23:20Z"
+                kickoff_str = event['date'] 
                 espn_spread = 0.0
                 
                 if 'odds' in comp and len(comp['odds']) > 0:
@@ -106,7 +102,6 @@ def get_espn_data(week):
     except Exception:
         pass
         
-    # Full 16-Matchup Safety Matrix (Ensures you always see all games even if ESPN drops out)
     if len(games_list) == 0:
         return [
             {"id": f"26_w{week}_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
@@ -164,7 +159,6 @@ try:
 except Exception as e:
     st.error(f"Error handling live data: {e}")
 
-# Place at the bottom of Section 1
 if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -172,191 +166,189 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
             conn.commit()
     st.rerun()
 
-# HARD VALIDATION ENGINE: Enforces the 5 pick limit rules
-def save_pick(game_id, team_selected):
+# Initialize Navigation Tab Framework
+tab1, tab2 = st.tabs(["🏈 Matchups Board", "🏆 Live Leaderboard"])
+
+# =====================================================================
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (PLACE DIRECTLY UNDER BOX 1)
+# =====================================================================
+with tab1:
+    def save_pick(game_id, team_selected):
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT game_id FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
+                    existing_picks = [row[0] for row in cur.fetchall()]
+                    
+                    is_updating_existing_game = game_id in existing_picks
+                    
+                    if len(existing_picks) >= 5 and not is_updating_existing_game:
+                        st.toast("🚨 Rule Limit: You can only select a maximum of 5 teams per week!", icon="❌")
+                        return False
+                    
+                    cur.execute("""
+                        INSERT INTO user_picks (username, week, game_id, selected_team) 
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (username, week, game_id) 
+                        DO UPDATE SET selected_team = EXCLUDED.selected_team
+                    """, (username, current_week, game_id, team_selected))
+                    conn.commit()
+            st.toast(f"Saved pick: {team_selected}!", icon="✅")
+            return True
+        except Exception as e:
+            st.error(f"Failed saving pick: {e}")
+            return False
+
+    st.subheader(f"Week {current_week} Matchups Board")
+    st.caption("Review all games. Select up to 5 teams against the line. Change picks prior to kickoff.")
+
+    current_pick_count = len(my_saved_picks)
+    if current_pick_count == 5:
+        st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta="Selections Locked In", delta_color="normal")
+    else:
+        st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta=f"{5 - current_pick_count} spaces available", delta_color="off")
+
+    for game in games:
+        g_id = game["id"]
+        spread = db_spreads.get(g_id, game["espn_spread"])
+        
+        is_game_locked = game["status"] != "pre"
+        try:
+            if "Z" in game["kickoff"]:
+                ko_time = datetime.strptime(game["kickoff"], "%Y-%m-%dT%H:%MfZ")
+                if datetime.utcnow() >= ko_time:
+                    is_game_locked = True
+        except Exception:
+            pass
+
+        with st.container(border=True):
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
+                st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['away']} (Away)</div>", unsafe_allow_html=True)
+                if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["away"]):
+                        st.rerun()
+                    
+            with col2:
+                st.markdown("<h4 style='text-align: center; margin: 0;'>VS</h4>", unsafe_allow_html=True)
+                
+                if spread < 0:
+                    st.markdown(f"<p style='text-align: center; color: #FB4F14; font-weight: bold; margin: 5px 0;'>🔥 Favorite: {game['away']} ({spread})</p>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<p style='text-align: center; color: #0080C6; font-weight: bold; margin: 5px 0;'>🔥 Favorite: {game['home']} (-{spread})</p>", unsafe_allow_html=True)
+                
+                if my_saved_picks.get(g_id):
+                    st.info(f"👉 Current Choice: **{my_saved_picks.get(g_id)}**")
+                    if st.button("❌ Unselect Choice", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
+                        with get_db_connection() as conn:
+                            with conn.cursor() as cur:
+                                cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
+                                conn.commit()
+                        st.rerun()
+                else:
+                    st.markdown("<p style='text-align: center; color: #aaa; font-style: italic; margin-top: 5px;'>No Selection</p>", unsafe_allow_html=True)
+                
+            with col3:
+                style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
+                st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['home']} (Home)</div>", unsafe_allow_html=True)
+                if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["home"]):
+                        st.rerun()
+
+# =====================================================================
+# 🏆 BOX 3: TAB 2 LEAGUE STANDINGS ENGINE (PLACE AT BOTTOM OF FILE)
+# =====================================================================
+with tab2:
+    st.subheader("🏆 League Standings & Live Score Tracking")
+    
+    all_user_picks = []
+    all_league_users = set()
+
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT game_id FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
+                cur.execute("SELECT username, game_id, selected_team FROM user_picks WHERE week = %s", (current_week,))
+                all_user_picks = cur.fetchall()
                 
-                existing_picks = [row[0] for row in cur.fetchall()]
-                
-                is_updating_existing_game = game_id in existing_picks
-                
-                if len(existing_picks) >= 5 and not is_updating_existing_game:
-                    st.toast("🚨 Rule Limit: You can only select a maximum of 5 teams per week!", icon="❌")
-                    return False
-                
-                cur.execute("""
-                    INSERT INTO user_picks (username, week, game_id, selected_team) 
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (username, week, game_id) 
-                    DO UPDATE SET selected_team = EXCLUDED.selected_team
-                """, (username, current_week, game_id, team_selected))
-                conn.commit()
-        st.toast(f"Saved pick: {team_selected}!", icon="✅")
-        return True
+                cur.execute("SELECT DISTINCT username FROM user_picks")
+                all_league_users = {row[0] for row in cur.fetchall()}
     except Exception as e:
-        st.error(f"Failed saving pick: {e}")
-        return False
+        st.error(f"Error compiling leaderboard data: {e}")
 
+    if username:
+        all_league_users.add(username)
 
-# Display Header Status Board Indicators
-st.subheader(f"Week {current_week} Matchups Board")
-st.caption("Review all games. Select up to 5 teams against the line. Change picks at any point prior to kickoff.")
+    live_games_dict = {g["id"]: g for g in games}
+    leaderboard_data = {user: {"Picks Made": 0, "Points": 0, "Details": []} for user in all_league_users}
 
-current_pick_count = len(my_saved_picks)
-if current_pick_count == 5:
-    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta="Selections Locked In", delta_color="normal")
-else:
-    st.metric(label="Total Saved Selection Count", value=f"{current_pick_count} / 5", delta=f"{5 - current_pick_count} spaces available", delta_color="off")
-
-# Render matching game cards into the board interface
-for game in games:
-    g_id = game["id"]
-    spread = db_spreads.get(g_id, game["espn_spread"])
-    
-    # KICKOFF LOCK LOGIC: Parse string timestamps safely to handle real-time enforcement
-    is_game_locked = game["status"] != "pre"
-    try:
-        if "Z" in game["kickoff"]:
-            # Clean string time formats to evaluate native datetimes
-            ko_time = datetime.strptime(game["kickoff"], "%Y-%m-%dT%H:%MfZ")
-            if datetime.utcnow() >= ko_time:
-                is_game_locked = True
-    except Exception:
-        pass
-
-    with st.container(border=True):
-        col1, col2, col3 = st.columns(3) # Explicit column parameters fix layout crashes
-        
-        with col1:
-            style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
-            st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['away']} (Away)</div>", unsafe_allow_html=True)
-            if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
-                if save_pick(g_id, game["away"]):
-                    st.rerun()
-                
-        with col2:
-            st.markdown("<h4 style='text-align: center; margin: 0;'>VS</h4>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align: center; color: #888; font-weight: bold;'>Spread: {spread}</p>", unsafe_allow_html=True)
+    for username_item, g_id, selected_team in all_user_picks:
+        if username_item not in leaderboard_data:
+            continue
             
-            # Selection Handling Interface
-            if my_saved_picks.get(g_id):
-                st.info(f"👉 Current Choice: **{my_saved_picks.get(g_id)}**")
-                if st.button("❌ Unselect Choice", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
-                    with get_db_connection() as conn:
-                        with conn.cursor() as cur:
-                            cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
-                            conn.commit()
-                    st.rerun()
+        game_obj = live_games_dict.get(g_id)
+        if not game_obj:
+            continue
+            
+        leaderboard_data[username_item]["Picks Made"] += 1
+        
+        if game_obj["status"] in ["in", "post"]:
+            home = game_obj["home"]
+            away = game_obj["away"]
+            h_score = game_obj["home_score"]
+            a_score = game_obj["away_score"]
+            spread_val = db_spreads.get(g_id, game_obj["espn_spread"])
+            
+            actual_margin = h_score - a_score
+            is_home_winner = actual_margin > spread_val
+            is_push = actual_margin == spread_val
+            
+            if is_push:
+                points_earned = 0
+                outcome_str = "🤝 Push"
+            elif (selected_team == home and is_home_winner) or (selected_team == away and not is_home_winner):
+                points_earned = 5
+                outcome_str = "✅ Cover (+5)"
             else:
-                st.markdown("<p style='text-align: center; color: #aaa; font-style: italic;'>No Selection</p>", unsafe_allow_html=True)
-            
-        with col3:
-            style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
-            st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:10px; border-radius:5px; text-align:center; font-weight:bold;'>{game['home']} (Home)</div>", unsafe_allow_html=True)
-            if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
-                if save_pick(g_id, game["home"]):
-                    st.rerun()
-
-# =====================================================================
-# 📊 SECTION 3: LIVE LEAGUE SCORING & LEADERBOARD ENGINE
-# =====================================================================
-st.divider()
-st.header("🏆 Live League Leaderboard")
-
-# 1. Fetch ALL picks from ALL users in the database for this week
-all_user_picks = []
-try:
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT username, game_id, selected_team 
-                FROM user_picks 
-                WHERE week = %s
-            """, (current_week,))
-            all_user_picks = cur.fetchall() # Returns list of tuples: (username, game_id, selected_team)
-except Exception as e:
-    st.error(f"Error compiling leaderboard data: {e}")
-
-# 2. Map current games to a quick lookup directory for live evaluations
-live_games_dict = {g["id"]: g for g in games}
-
-# 3. Process scores for every user dynamically
-# Cover 5 Ruleset Mapping: Win against spread = +5 pts, Push = 0 pts, Loss = -5 pts
-leaderboard_data = {}
-
-for username_item, g_id, selected_team in all_user_picks:
-    if username_item not in leaderboard_data:
-        leaderboard_data[username_item] = {"Picks Made": 0, "Points": 0, "Details": []}
-        
-    # Check if the game has started or finished
-    game_obj = live_games_dict.get(g_id)
-    if not game_obj:
-        continue
-        
-    leaderboard_data[username_item]["Picks Made"] += 1
-    
-    # Live Status Checklist: Only score if game is in progress ('in') or finished ('post')
-    if game_obj["status"] in ["in", "post"]:
-        home = game_obj["home"]
-        away = game_obj["away"]
-        h_score = game_obj["home_score"]
-        a_score = game_obj["away_score"]
-        spread_val = db_spreads.get(g_id, game_obj["espn_spread"]) # Fixed spread line from DB
-        
-        # Calculate Margin from Home Team Perspective
-        # If spread is negative (e.g. -3.5), Home is favored. They must win by more than 3.5.
-        actual_margin = h_score - a_score
-        
-        # Determine tracking parameters
-        is_home_winner = actual_margin > spread_val
-        is_push = actual_margin == spread_val
-        
-        # Assign points based on user's selection
-        if is_push:
-            points_earned = 0
-            outcome_str = "🤝 Push"
-        elif (selected_team == home and is_home_winner) or (selected_team == away and not is_home_winner):
-            points_earned = 5
-            outcome_str = "✅ Cover (+5)"
+                points_earned = -5
+                outcome_str = "❌ Miss (-5)"
+                
+            leaderboard_data[username_item]["Points"] += points_earned
+            leaderboard_data[username_item]["Details"].append(f"{selected_team} ({outcome_str})")
         else:
-            points_earned = -5
-            outcome_str = "❌ Miss (-5)"
+            if username_item == username:
+                leaderboard_data[username_item]["Details"].append(f"{selected_team} (🔒 Pending)")
+            else:
+                leaderboard_data[username_item]["Details"].append("🔒 Hidden")
+
+    # DESIGN RULE: -7 POINTS FOR EVERY UNCHOSEN MATCHUP SLOT AFTER KICKOFF
+    started_games_count = sum(1 for g in games if g["status"] in ["in", "post"])
+
+    for player, stats in leaderboard_data.items():
+        picks_shortfall = 5 - stats["Picks Made"]
+        
+        if picks_shortfall > 0 and started_games_count > 0:
+            applicable_penalties = min(picks_shortfall, started_games_count)
+            penalty_total = applicable_penalties * -7
+            stats["Points"] += penalty_total
             
-        leaderboard_data[username_item]["Points"] += points_earned
-        leaderboard_data[username_item]["Details"].append(f"{selected_team} ({outcome_str})")
+            for _ in range(applicable_penalties):
+                stats["Details"].append("⚠️ Unchosen (-7)")
+
+    if leaderboard_data:
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x["Points"], reverse=True)
+        
+        display_rows = []
+        for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
+            display_rows.append({
+                "Rank": f"#{rank}",
+                "Player": player.upper(),
+                "Total Picks": f"{stats['Picks Made']} / 5",
+                "Live Points Score": f"{stats['Points']} pts",
+                "Live Pick Tracking": ", ".join(stats["Details"]) if stats["Details"] else "No activity"
+            })
+            
+        st.dataframe(display_rows, use_container_width=True, hide_index=True)
     else:
-        # Game hasn't started yet: Hide selection from others until kickoff to prevent cheating
-        if username_item == username:
-            leaderboard_data[username_item]["Details"].append(f"{selected_team} (🔒 Pending Kickoff)")
-        else:
-            leaderboard_data[username_item]["Details"].append("🔒 Hidden until Kickoff")
-
-# 4. Format and Render the Standings Leaderboard UI Table
-if leaderboard_data:
-    # Sort players by total score points descending
-    sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
-    
-    # Build clean display rows
-    display_rows = []
-    for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
-        display_rows.append({
-            "Rank": f"#{rank}",
-            "Player": player.upper(),
-            "Total Picks": f"{stats['Picks Made']} / 5",
-            "Live Points Score": f"{stats['Points']} pts",
-            "Live Pick Tracking Tracking": ", ".join(stats["Details"])
-        })
-        
-    st.dataframe(
-        display_rows, 
-        use_container_width=True, 
-        hide_index=True,
-        column_config={
-            "Live Points Score": st.column_config.TextColumn("Live Points Score", help="Win = +5, Loss = -5, Push = 0")
-        }
-    )
-else:
-    st.info("🏈 No picks have been saved by league players for this week yet.")
+        st.info("🏈 No picks have been saved by league players for this week yet.")
