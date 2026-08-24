@@ -38,7 +38,7 @@ except Exception as e:
     st.error(f"Database sync alert: {e}")
 
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
-st.title("🏈 Cover 5 Clone League Engine")
+st.title("🏈 Cover 5 Clone League")
 
 username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
