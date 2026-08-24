@@ -170,7 +170,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
-# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (STREAMLINED MOBILE LAYOUT)
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE GOLD SELECTION HIGHLIGHTS)
 # =====================================================================
 with tab1:
     def save_pick(game_id, team_selected):
@@ -235,34 +235,34 @@ with tab1:
         except Exception:
             pass
 
-        # 🎨 STYLING: Native App row alignment layout block
+        # Fetch base team colors
         style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
         style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
         
-        # Display selected accent glow borders
         current_pick = my_saved_picks.get(g_id)
-        border_glow = "border-left: 5px solid #0080C6;" if current_pick else "border-left: 1px solid #ddd;"
+        
+        # 🎨 STYLING LOGIC: Apply contrasting gold borders and opacities based on active selections
+        away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
+        home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
 
         with st.container(border=True):
-            # Compact HTML header mapping for the row layout
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
-            # Formulate selection tracking details inside the middle section
-            center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold;'>LINE: {spread_str}</div>"
+            center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
             if current_pick:
-                center_display_html = f"<div style='text-align:center; color:#0080C6; font-size:12px; font-weight:bold;'>🎯 SELECTED: {current_pick}</div>"
+                center_display_html = f"<div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold;'>🎯 LOCKED</div>"
 
-            # Render HTML layout wrapper
+            # Render Streamlined Mobile Grid Wrapper
             st.markdown(
                 f"""
-                <div style='display: flex; justify-content: space-between; align-items: center; padding: 2px 0; {border_glow}'>
-                    <div style='width: 35%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 14px;'>
+                <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
+                    <div style='width: 38%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; {away_border} transition: all 0.2s ease;'>
                         {game['away']}
                     </div>
-                    <div style='width: 30%; text-align: center;'>
+                    <div style='width: 24%; text-align: center;'>
                         {center_display_html}
                     </div>
-                    <div style='width: 35%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 14px;'>
+                    <div style='width: 38%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; {home_border} transition: all 0.2s ease;'>
                         {game['home']}
                     </div>
                 </div>
@@ -270,8 +270,8 @@ with tab1:
                 unsafe_allow_html=True
             )
             
-            # Interactive Click Buttons directly below the row structure
-            btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
+            # Interactive Click Actions directly under the visual row components
+            btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
