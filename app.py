@@ -191,6 +191,7 @@ def save_pick(game_id, team_selected):
         st.error(f"Failed saving pick: {e}")
         return False
 
+
 # Display Header Status Board Indicators
 st.subheader(f"Week {current_week} Matchups Board")
 st.caption("Review all games. Select up to 5 teams against the line. Change picks at any point prior to kickoff.")
