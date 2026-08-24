@@ -470,7 +470,7 @@ with tab3:
         sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
         
        season_rows = []
-        for rank, (player, stats) in enumerate(sorted_season, start=1):
+       for rank, (player, stats) in enumerate(sorted_season, start=1):
             # Safe extraction: if player is a tuple, grab the first element
             player_str = player[0] if isinstance(player, tuple) else player
             
@@ -480,7 +480,7 @@ with tab3:
                 "Overall Score": f"{stats['Total Points']} pts",
                 "Record (W-L-P)": f"{stats['Wins']} - {stats['Losses']} - {stats['Pushes']}",
                 "Missed Selection Penalties": f"{stats['Penalties']} applied"
-            })
+             })
         st.dataframe(season_rows, use_container_width=True, hide_index=True)
     else:
         st.info("🏆 Historical season data records are currently empty. Complete weekly games to build standings entries!")
