@@ -200,7 +200,26 @@ with tab1:
             return False
 
     st.subheader(f"Week {current_week} Matchups Board")
-    st.caption("Review all games. Select up to 5 teams against the line. Change picks prior to kickoff.")
+    
+    # 🌟 NEW TWEAK: HORIZONTAL "MY SLIP" ROW
+    if my_saved_picks:
+        st.markdown("### 🎫 My Current Slip")
+        # Generate up to 5 equal columns side-by-side for active selections
+        slip_cols = st.columns(len(my_saved_picks))
+        for index, (g_id, chosen_team) in enumerate(my_saved_picks.items()):
+            with slip_cols[index]:
+                style = TEAM_COLORS.get(chosen_team, {"bg": "#333", "text": "#fff"})
+                st.markdown(
+                    f"""<div style='background-color:{style['bg']}; color:{style['text']}; 
+                    padding:8px; border-radius:5px; text-align:center; font-weight:bold; 
+                    box-shadow: 2px 2px 5px rgba(0,0,0,0.15); font-size:14px;'>
+                    🏈 {chosen_team}
+                    </div>""", 
+                    unsafe_allow_html=True
+                )
+        st.divider()
+    else:
+        st.info("💡 Your betting slip is currently empty. Click teams below to fill your 5 spots!")
 
     current_pick_count = len(my_saved_picks)
     if current_pick_count == 5:
@@ -337,6 +356,7 @@ with tab2:
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
+        # 🚨 THE PERMANENT FIX: Access item index [1] to safely scan dictionary fields inside sorting loops
         sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         display_rows = []
