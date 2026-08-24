@@ -195,7 +195,7 @@ for game in games:
     spread = db_spreads.get(g_id, game["espn_spread"])
     
     with st.container(border=True):
-        col1, col2, col3 = st.columns()
+        col1, col2, col3 = st.columns(3)
         
         # Check current choice state parameters
         is_away_picked = my_saved_picks.get(g_id) == game["away"]
