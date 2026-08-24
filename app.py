@@ -170,7 +170,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
-# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE GOLD SELECTION HIGHLIGHTS)
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE APP INTERFACE WITH LIVE SLIP SPREADS)
 # =====================================================================
 with tab1:
     def save_pick(game_id, team_selected):
@@ -201,18 +201,22 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # 🎫 My Active Slip Tracker Row
+    # 🌟 HUD REBUILD: HORIZONTAL SLIP WITH EMBEDDED POINT SPREADS
     if my_saved_picks:
         st.markdown("### 🎫 My Current Slip")
         slip_cols = st.columns(len(my_saved_picks))
         for index, (g_id, chosen_team) in enumerate(my_saved_picks.items()):
             with slip_cols[index]:
+                # Pull line from active dictionary state references
+                raw_spread = db_spreads.get(g_id, 0.0)
+                spread_text = f"{raw_spread}" if raw_spread < 0 else f"+{raw_spread}"
+                
                 style = TEAM_COLORS.get(chosen_team, {"bg": "#333", "text": "#fff"})
                 st.markdown(
                     f"""<div style='background-color:{style['bg']}; color:{style['text']}; 
-                    padding:6px; border-radius:5px; text-align:center; font-weight:bold; 
-                    box-shadow: 2px 2px 5px rgba(0,0,0,0.15); font-size:14px;'>
-                    🏈 {chosen_team}
+                    padding:8px; border-radius:5px; text-align:center; font-weight:bold; 
+                    box-shadow: 2px 2px 5px rgba(0,0,0,0.15); font-size:13px;'>
+                    🏈 {chosen_team} ({spread_text})
                     </div>""", 
                     unsafe_allow_html=True
                 )
@@ -221,7 +225,7 @@ with tab1:
     current_pick_count = len(my_saved_picks)
     st.caption(f"**Selections:** {current_pick_count} / 5 Locked In")
 
-    # Render Matchups Using Streamlined App Layout
+    # Render Matchups Using Streamlined Mobile-First App Engine
     for game in games:
         g_id = game["id"]
         spread = db_spreads.get(g_id, game["espn_spread"])
@@ -235,24 +239,29 @@ with tab1:
         except Exception:
             pass
 
-        # Fetch base team colors
+        # Fetch matching theme configurations
         style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
         style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
         
         current_pick = my_saved_picks.get(g_id)
         
-        # 🎨 STYLING LOGIC: Apply contrasting gold borders and opacities based on active selections
+        # Apply neon highlights and fading variables
         away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
         home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
 
         with st.container(border=True):
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
-            center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
+            # 🌟 PERSISTENT DESIGN: Keeps lines visible inside center columns at all times
             if current_pick:
-                center_display_html = f"<div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold;'>🎯 LOCKED</div>"
+                center_display_html = f"""
+                <div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:2px;'>🎯 LOCKED</div>
+                <div style='text-align:center; font-size:11px; font-weight:bold; color:#aaa;'>LINE: {spread_str}</div>
+                """
+            else:
+                center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
 
-            # Render Streamlined Mobile Grid Wrapper
+            # Render Layout Row Structures
             st.markdown(
                 f"""
                 <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
@@ -270,7 +279,7 @@ with tab1:
                 unsafe_allow_html=True
             )
             
-            # Interactive Click Actions directly under the visual row components
+            # Interactive Click Actions
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
