@@ -259,3 +259,104 @@ for game in games:
             if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                 if save_pick(g_id, game["home"]):
                     st.rerun()
+
+# =====================================================================
+# 📊 SECTION 3: LIVE LEAGUE SCORING & LEADERBOARD ENGINE
+# =====================================================================
+st.divider()
+st.header("🏆 Live League Leaderboard")
+
+# 1. Fetch ALL picks from ALL users in the database for this week
+all_user_picks = []
+try:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT username, game_id, selected_team 
+                FROM user_picks 
+                WHERE week = %s
+            """, (current_week,))
+            all_user_picks = cur.fetchall() # Returns list of tuples: (username, game_id, selected_team)
+except Exception as e:
+    st.error(f"Error compiling leaderboard data: {e}")
+
+# 2. Map current games to a quick lookup directory for live evaluations
+live_games_dict = {g["id"]: g for g in games}
+
+# 3. Process scores for every user dynamically
+# Cover 5 Ruleset Mapping: Win against spread = +5 pts, Push = 0 pts, Loss = -5 pts
+leaderboard_data = {}
+
+for username_item, g_id, selected_team in all_user_picks:
+    if username_item not in leaderboard_data:
+        leaderboard_data[username_item] = {"Picks Made": 0, "Points": 0, "Details": []}
+        
+    # Check if the game has started or finished
+    game_obj = live_games_dict.get(g_id)
+    if not game_obj:
+        continue
+        
+    leaderboard_data[username_item]["Picks Made"] += 1
+    
+    # Live Status Checklist: Only score if game is in progress ('in') or finished ('post')
+    if game_obj["status"] in ["in", "post"]:
+        home = game_obj["home"]
+        away = game_obj["away"]
+        h_score = game_obj["home_score"]
+        a_score = game_obj["away_score"]
+        spread_val = db_spreads.get(g_id, game_obj["espn_spread"]) # Fixed spread line from DB
+        
+        # Calculate Margin from Home Team Perspective
+        # If spread is negative (e.g. -3.5), Home is favored. They must win by more than 3.5.
+        actual_margin = h_score - a_score
+        
+        # Determine tracking parameters
+        is_home_winner = actual_margin > spread_val
+        is_push = actual_margin == spread_val
+        
+        # Assign points based on user's selection
+        if is_push:
+            points_earned = 0
+            outcome_str = "🤝 Push"
+        elif (selected_team == home and is_home_winner) or (selected_team == away and not is_home_winner):
+            points_earned = 5
+            outcome_str = "✅ Cover (+5)"
+        else:
+            points_earned = -5
+            outcome_str = "❌ Miss (-5)"
+            
+        leaderboard_data[username_item]["Points"] += points_earned
+        leaderboard_data[username_item]["Details"].append(f"{selected_team} ({outcome_str})")
+    else:
+        # Game hasn't started yet: Hide selection from others until kickoff to prevent cheating
+        if username_item == username:
+            leaderboard_data[username_item]["Details"].append(f"{selected_team} (🔒 Pending Kickoff)")
+        else:
+            leaderboard_data[username_item]["Details"].append("🔒 Hidden until Kickoff")
+
+# 4. Format and Render the Standings Leaderboard UI Table
+if leaderboard_data:
+    # Sort players by total score points descending
+    sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
+    
+    # Build clean display rows
+    display_rows = []
+    for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
+        display_rows.append({
+            "Rank": f"#{rank}",
+            "Player": player.upper(),
+            "Total Picks": f"{stats['Picks Made']} / 5",
+            "Live Points Score": f"{stats['Points']} pts",
+            "Live Pick Tracking Tracking": ", ".join(stats["Details"])
+        })
+        
+    st.dataframe(
+        display_rows, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "Live Points Score": st.column_config.TextColumn("Live Points Score", help="Win = +5, Loss = -5, Push = 0")
+        }
+    )
+else:
+    st.info("🏈 No picks have been saved by league players for this week yet.")
