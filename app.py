@@ -246,8 +246,10 @@ with tab1:
         current_pick = my_saved_picks.get(g_id)
         
         # Apply neon highlights and fading variables
-        away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
-        home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent; opacity: 0.5;" if current_pick else "border: 1px solid transparent;"
+        # 🚨 UPDATE THESE TWO LINES INSIDE BOX 2 TO REMOVE THE FADE:
+        away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent;"
+        home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent;"
+
 
         with st.container(border=True):
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
