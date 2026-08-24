@@ -170,7 +170,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
-# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE APP INTERFACE WITH LIVE SLIP SPREADS)
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE COVERS STYLE - FULL FIXED GRIDS)
 # =====================================================================
 with tab1:
     def save_pick(game_id, team_selected):
@@ -201,13 +201,12 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # 🌟 HUD REBUILD: HORIZONTAL SLIP WITH EMBEDDED POINT SPREADS
+    # 🎫 My Active Slip Tracker Row
     if my_saved_picks:
         st.markdown("### 🎫 My Current Slip")
         slip_cols = st.columns(len(my_saved_picks))
         for index, (g_id, chosen_team) in enumerate(my_saved_picks.items()):
             with slip_cols[index]:
-                # Pull line from active dictionary state references
                 raw_spread = db_spreads.get(g_id, 0.0)
                 spread_text = f"{raw_spread}" if raw_spread < 0 else f"+{raw_spread}"
                 
@@ -225,7 +224,7 @@ with tab1:
     current_pick_count = len(my_saved_picks)
     st.caption(f"**Selections:** {current_pick_count} / 5 Locked In")
 
-    # Render Matchups Using Streamlined Mobile-First App Engine
+    # Render Matchups Using Streamlined App Layout
     for game in games:
         g_id = game["id"]
         spread = db_spreads.get(g_id, game["espn_spread"])
@@ -239,22 +238,19 @@ with tab1:
         except Exception:
             pass
 
-        # Fetch matching theme configurations
+        # Fetch base team colors
         style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
         style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
         
         current_pick = my_saved_picks.get(g_id)
         
-        # Apply neon highlights and fading variables
-        # 🚨 UPDATE THESE TWO LINES INSIDE BOX 2 TO REMOVE THE FADE:
+        # Apply glowing gold highlights to selected teams, keeping full brightness for opponents
         away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent;"
         home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent;"
-
 
         with st.container(border=True):
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
-            # 🌟 PERSISTENT DESIGN: Keeps lines visible inside center columns at all times
             if current_pick:
                 center_display_html = f"""
                 <div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:2px;'>🎯 LOCKED</div>
@@ -263,7 +259,7 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
 
-            # Render Layout Row Structures
+            # Render Mobile Row Grid
             st.markdown(
                 f"""
                 <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
