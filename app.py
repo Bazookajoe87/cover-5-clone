@@ -163,6 +163,15 @@ try:
             my_saved_picks = dict(cur.fetchall())
 except Exception as e:
     st.error(f"Error handling live data: {e}")
+
+# Place at the bottom of Section 1
+if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
+            conn.commit()
+    st.rerun()
+
 # HARD VALIDATION ENGINE: Enforces the 5 pick limit rules
 def save_pick(game_id, team_selected):
     try:
