@@ -167,7 +167,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
     st.rerun()
 
 # Initialize Navigation Tab Framework
-tab1, tab2 = st.tabs(["🏈 Matchups Board", "🏆 Live Leaderboard"])
+tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
 # 🏈 BOX 2: TAB 1 MATCHUPS BOARD (PLACE DIRECTLY UNDER BOX 1)
@@ -277,10 +277,10 @@ with tab1:
                         st.rerun()
 
 # =====================================================================
-# 🏆 BOX 3: TAB 2 LEAGUE STANDINGS ENGINE (PLACE AT BOTTOM OF FILE)
+# 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (PLACE UNDER BOX 2)
 # =====================================================================
 with tab2:
-    st.subheader("🏆 League Standings & Live Score Tracking")
+    st.subheader(f"🏈 Week {current_week} Standings & Live Score Tracking")
     
     all_user_picks = []
     all_league_users = set()
@@ -341,22 +341,17 @@ with tab2:
             else:
                 leaderboard_data[username_item]["Details"].append("🔒 Hidden")
 
-    # DESIGN RULE: -7 POINTS FOR EVERY UNCHOSEN MATCHUP SLOT AFTER KICKOFF
     started_games_count = sum(1 for g in games if g["status"] in ["in", "post"])
 
     for player, stats in leaderboard_data.items():
         picks_shortfall = 5 - stats["Picks Made"]
-        
         if picks_shortfall > 0 and started_games_count > 0:
             applicable_penalties = min(picks_shortfall, started_games_count)
-            penalty_total = applicable_penalties * -7
-            stats["Points"] += penalty_total
-            
+            stats["Points"] += (applicable_penalties * -7)
             for _ in range(applicable_penalties):
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
-        # 🚨 THE PERMANENT FIX: Access item index [1] to safely scan dictionary fields inside sorting loops
         sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         display_rows = []
@@ -372,3 +367,104 @@ with tab2:
         st.dataframe(display_rows, use_container_width=True, hide_index=True)
     else:
         st.info("🏈 No picks have been saved by league players for this week yet.")
+
+# =====================================================================
+# 🏆 BOX 4: TAB 3 SEASON-LONG STANDINGS (PLACE AT THE ABSOLUTE BOTTOM)
+# =====================================================================
+with tab3:
+    st.subheader("🏆 Over-The-Year Master Standings")
+    st.caption("Season cumulative scores tracking absolute performance rankings across all parsed weeks.")
+    
+    season_picks_raw = []
+    season_users = set()
+    
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1. Fetch EVERY single pick ever written to the database across all weeks
+                cur.execute("SELECT username, week, game_id, selected_team FROM user_picks")
+                season_picks_raw = cur.fetchall()
+                
+                cur.execute("SELECT DISTINCT username FROM user_picks")
+                season_users = {row[0] for row in cur.fetchall()}
+    except Exception as e:
+        st.error(f"Error compiling season database data: {e}")
+
+    if username:
+        season_users.add(username)
+
+    # 2. Setup structural dict tracking total accumulation analytics
+    season_leaderboard = {user: {"Total Points": 0, "Wins": 0, "Losses": 0, "Pushes": 0, "Penalties": 0} for user in season_users}
+
+    # 3. For each unique week represented in the data records, evaluate game outcomes
+    if season_picks_raw:
+        # Group picks by week for processing efficiency
+        picks_by_week = {}
+        for p_user, p_week, p_gid, p_team in season_picks_raw:
+            if p_week not in picks_by_week:
+                picks_by_week[p_week] = []
+            picks_by_week[p_week].append((p_user, p_gid, p_team))
+
+        # Iteratively calculate scores week-by-week
+        for week_idx, user_picks_list in picks_by_week.items():
+            week_games = get_espn_data(week_idx)
+            week_games_map = {g["id"]: g for g in week_games}
+            
+            # Keep tabs on picks completed per player this particular week
+            picks_counter_this_week = {user: 0 for user in season_users}
+            
+            # Evaluate explicit selections
+            for p_user, p_gid, p_team in user_picks_list:
+                if p_user not in season_leaderboard:
+                    continue
+                
+                game_obj = week_games_map.get(p_gid)
+                if not game_obj:
+                    continue
+                    
+                picks_counter_this_week[p_user] += 1
+                
+                # We only score games that have kicked off or finished
+                if game_obj["status"] in ["in", "post"]:
+                    h_score = game_obj["home_score"]
+                    a_score = game_obj["away_score"]
+                    spread_val = db_spreads.get(p_gid, game_obj["espn_spread"])
+                    
+                    margin = h_score - a_score
+                    
+                    if margin == spread_val:
+                        season_leaderboard[p_user]["Pushes"] += 1
+                    elif (p_team == game_obj["home"] and margin > spread_val) or (p_team == game_obj["away"] and margin < spread_val):
+                        season_leaderboard[p_user]["Total Points"] += 5
+                        season_leaderboard[p_user]["Wins"] += 1
+                    else:
+                        season_leaderboard[p_user]["Total Points"] -= 5
+                        season_leaderboard[p_user]["Losses"] += 1
+
+            # Evaluate missing selection rule penalties (-7 per slot) for this week
+            games_started_this_week = sum(1 for g in week_games if g["status"] in ["in", "post"])
+            if games_started_this_week > 0:
+                for player in season_users:
+                    count_made = picks_counter_this_week.get(player, 0)
+                    shortfall = 5 - count_made
+                    if shortfall > 0:
+                        applied = min(shortfall, games_started_this_week)
+                        season_leaderboard[player]["Total Points"] += (applied * -7)
+                        season_leaderboard[player]["Penalties"] += applied
+
+        # 4. Sort and render season data
+        sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
+        
+        season_rows = []
+        for rank, (player, stats) in enumerate(sorted_season, start=1):
+            season_rows.append({
+                "Rank": f"#{rank}",
+                "Player": player.upper(),
+                "Overall Score": f"{stats['Total Points']} pts",
+                "Record (W-L-P)": f"{stats['Wins']} - {stats['Losses']} - {stats['Pushes']}",
+                "Missed Selection Penalties": f"{stats['Penalties']} applied"
+            })
+            
+        st.dataframe(season_rows, use_container_width=True, hide_index=True)
+    else:
+        st.info("🏆 Historical season data records are currently empty. Complete weekly games to build standings entries!")
