@@ -38,7 +38,7 @@ except Exception as e:
     st.error(f"Database sync alert: {e}")
 
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
-st.title("🏈 Cover 5 Clone League")
+st.title("🏈 Free Cover 5 League Engine")
 
 username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
@@ -170,7 +170,7 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
 # =====================================================================
-# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE COVERS STYLE - FULL FIXED GRIDS)
+# 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE FIXED CONTAINER STRINGS)
 # =====================================================================
 with tab1:
     def save_pick(game_id, team_selected):
@@ -201,7 +201,7 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # 🎫 My Active Slip Tracker Row
+    # HUD Layout Framework mapping point lines cleanly next to selections
     if my_saved_picks:
         st.markdown("### 🎫 My Current Slip")
         slip_cols = st.columns(len(my_saved_picks))
@@ -224,7 +224,7 @@ with tab1:
     current_pick_count = len(my_saved_picks)
     st.caption(f"**Selections:** {current_pick_count} / 5 Locked In")
 
-    # Render Matchups Using Streamlined App Layout
+    # Render Matchups Loops
     for game in games:
         g_id = game["id"]
         spread = db_spreads.get(g_id, game["espn_spread"])
@@ -238,13 +238,12 @@ with tab1:
         except Exception:
             pass
 
-        # Fetch base team colors
         style_away = TEAM_COLORS.get(game["away"], {"bg": "#333", "text": "#fff"})
         style_home = TEAM_COLORS.get(game["home"], {"bg": "#333", "text": "#fff"})
         
         current_pick = my_saved_picks.get(g_id)
         
-        # Apply glowing gold highlights to selected teams, keeping full brightness for opponents
+        # 🚨 RESOLVED ATTRIBUTES: Clear transparent containers with NO leaking raw strings
         away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent;"
         home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent;"
 
@@ -259,7 +258,7 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
 
-            # Render Mobile Row Grid
+            # Render HTML structure without variables overlapping 
             st.markdown(
                 f"""
                 <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
@@ -277,7 +276,6 @@ with tab1:
                 unsafe_allow_html=True
             )
             
-            # Interactive Click Actions
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
@@ -372,23 +370,21 @@ with tab2:
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
-        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
-       
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x["Points"], reverse=True)
+        
         display_rows = []
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
-            # Unpack player string if it is trapped in a database row tuple
-            player_str = player[0] if isinstance(player, tuple) or isinstance(player, list) else player
+            player_str = player if not isinstance(player, (tuple, list)) else player
             
             display_rows.append({
                 "Rank": f"#{rank}",
-                "Player": str(player_str).upper(), # Safely capitalizes without hitting errors
+                "Player": str(player_str).upper(),
                 "Total Picks": f"{stats['Picks Made']} / 5",
                 "Live Points Score": f"{stats['Points']} pts",
                 "Live Pick Tracking": ", ".join(stats["Details"]) if stats["Details"] else "No activity"
             })
             
         st.dataframe(display_rows, use_container_width=True, hide_index=True)
-
     else:
         st.info("🏈 No picks have been saved by league players for this week yet.")
 
@@ -409,7 +405,7 @@ with tab3:
                 season_picks_raw = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
-                season_users = {row[0] for row in cur.fetchall()}
+                season_users = {row for row in cur.fetchall()}
     except Exception as e:
         st.error(f"Error compiling season database data: {e}")
 
@@ -467,13 +463,11 @@ with tab3:
                         season_leaderboard[player]["Total Points"] += (applied * -7)
                         season_leaderboard[player]["Penalties"] += applied
 
-                # 🚨 FULLY ALIGNED REPLACEMENT BLOCK FOR THE BOTTOM OF BOX 4:
-        sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
+        sorted_season = sorted(season_leaderboard.items(), key=lambda x: x["Total Points"], reverse=True)
         
         season_rows = []
         for rank, (player, stats) in enumerate(sorted_season, start=1):
-            # Safe extraction: if player is a database tuple, pull the first string element out safely
-            player_str = player[0] if isinstance(player, tuple) else player
+            player_str = player if not isinstance(player, (tuple, list)) else player
             
             season_rows.append({
                 "Rank": f"#{rank}",
