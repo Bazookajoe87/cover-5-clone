@@ -299,7 +299,7 @@ with tab1:
                         st.rerun()
 
 # =====================================================================
-# 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (PLACE UNDER BOX 2)
+# 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (PLACE DIRECTLY UNDER BOX 2)
 # =====================================================================
 with tab2:
     st.subheader(f"🏈 Week {current_week} Standings & Live Score Tracking")
@@ -314,7 +314,7 @@ with tab2:
                 all_user_picks = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
-                all_league_users = {row[0] for row in cur.fetchall()}
+                all_league_users = {row for row in cur.fetchall()}
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
 
@@ -403,7 +403,6 @@ with tab3:
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # 1. Fetch EVERY single pick ever written to the database across all weeks
                 cur.execute("SELECT username, week, game_id, selected_team FROM user_picks")
                 season_picks_raw = cur.fetchall()
                 
@@ -415,27 +414,21 @@ with tab3:
     if username:
         season_users.add(username)
 
-    # 2. Setup structural dict tracking total accumulation analytics
     season_leaderboard = {user: {"Total Points": 0, "Wins": 0, "Losses": 0, "Pushes": 0, "Penalties": 0} for user in season_users}
 
-    # 3. For each unique week represented in the data records, evaluate game outcomes
     if season_picks_raw:
-        # Group picks by week for processing efficiency
         picks_by_week = {}
         for p_user, p_week, p_gid, p_team in season_picks_raw:
             if p_week not in picks_by_week:
                 picks_by_week[p_week] = []
             picks_by_week[p_week].append((p_user, p_gid, p_team))
 
-        # Iteratively calculate scores week-by-week
         for week_idx, user_picks_list in picks_by_week.items():
             week_games = get_espn_data(week_idx)
             week_games_map = {g["id"]: g for g in week_games}
             
-            # Keep tabs on picks completed per player this particular week
             picks_counter_this_week = {user: 0 for user in season_users}
             
-            # Evaluate explicit selections
             for p_user, p_gid, p_team in user_picks_list:
                 if p_user not in season_leaderboard:
                     continue
@@ -446,7 +439,6 @@ with tab3:
                     
                 picks_counter_this_week[p_user] += 1
                 
-                # We only score games that have kicked off or finished
                 if game_obj["status"] in ["in", "post"]:
                     h_score = game_obj["home_score"]
                     a_score = game_obj["away_score"]
@@ -463,7 +455,6 @@ with tab3:
                         season_leaderboard[p_user]["Total Points"] -= 5
                         season_leaderboard[p_user]["Losses"] += 1
 
-            # Evaluate missing selection rule penalties (-7 per slot) for this week
             games_started_this_week = sum(1 for g in week_games if g["status"] in ["in", "post"])
             if games_started_this_week > 0:
                 for player in season_users:
@@ -474,7 +465,6 @@ with tab3:
                         season_leaderboard[player]["Total Points"] += (applied * -7)
                         season_leaderboard[player]["Penalties"] += applied
 
-        # 4. Sort and render season data
         sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
         
         season_rows = []
