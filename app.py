@@ -377,18 +377,22 @@ with tab2:
 
     if leaderboard_data:
         sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
-        
+       
         display_rows = []
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
+            # Unpack player string if it is trapped in a database row tuple
+            player_str = player[0] if isinstance(player, tuple) or isinstance(player, list) else player
+            
             display_rows.append({
                 "Rank": f"#{rank}",
-                "Player": player.upper(),
+                "Player": str(player_str).upper(), # Safely capitalizes without hitting errors
                 "Total Picks": f"{stats['Picks Made']} / 5",
                 "Live Points Score": f"{stats['Points']} pts",
                 "Live Pick Tracking": ", ".join(stats["Details"]) if stats["Details"] else "No activity"
             })
             
         st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
     else:
         st.info("🏈 No picks have been saved by league players for this week yet.")
 
