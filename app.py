@@ -18,6 +18,7 @@ def init_db():
                     spread_value NUMERIC(3,1) DEFAULT 0.0,
                     is_locked BOOLEAN DEFAULT FALSE
                 );
+                ALTER TABLE spreads ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
                 CREATE TABLE IF NOT EXISTS user_picks (
                     username TEXT,
                     week INT,
