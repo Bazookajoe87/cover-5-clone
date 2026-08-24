@@ -337,7 +337,7 @@ with tab2:
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
-        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x["Points"], reverse=True)
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         display_rows = []
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
