@@ -266,23 +266,32 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
 
-            # Render HTML structure without variables overlapping 
-            st.markdown(
-                f"""
-                <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
-                    <div style='width: 38%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; {away_border} transition: all 0.2s ease;'>
-                        {game['away']}
-                    </div>
-                    <div style='width: 24%; text-align: center;'>
-                        {center_display_html}
-                    </div>
-                    <div style='width: 38%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; {home_border} transition: all 0.2s ease;'>
-                        {game['home']}
-                    </div>
+            html_template = """
+            <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
+                <div style='width: 38%; background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; __AWAY_STYLE__ transition: all 0.2s ease;'>
+                    __AWAY_TEAM__
                 </div>
-                """, 
-                unsafe_allow_html=True
-            )
+                <div style='width: 24%; text-align: center;'>
+                    __CENTER_HTML__
+                </div>
+                <div style='width: 38%; background-color: __HOME_BG__; color: __HOME_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px; __HOME_STYLE__ transition: all 0.2s ease;'>
+                    __HOME_TEAM__
+                </div>
+            </div>
+            """
+            
+            clean_html = html_template \
+                .replace("__AWAY_BG__", style_away['bg']) \
+                .replace("__AWAY_TXT__", style_away['text']) \
+                .replace("__AWAY_STYLE__", away_border) \
+                .replace("__AWAY_TEAM__", game['away']) \
+                .replace("__CENTER_HTML__", center_display_html) \
+                .replace("__HOME_BG__", style_home['bg']) \
+                .replace("__HOME_TXT__", style_home['text']) \
+                .replace("__HOME_STYLE__", home_border) \
+                .replace("__HOME_TEAM__", game['home'])
+                
+            st.markdown(clean_html, unsafe_allow_html=True)
             
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
