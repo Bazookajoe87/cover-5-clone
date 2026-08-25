@@ -45,6 +45,25 @@ username = st.sidebar.text_input("Enter Your Name:", value="").strip().lower()
 
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
+# =====================================================================
+# 🔐 ADMIN LOG-IN PROTECTOR CONTROLS (PLACE IN BOX 1)
+# =====================================================================
+st.sidebar.divider()
+is_admin = False
+
+# Simple secret gate: Create a toggle dropdown field to uncover admin settings
+show_admin_login = st.sidebar.checkbox("⚙️ League Admin Tools")
+
+if show_admin_login:
+    # Set your secret passcode here (change 'cover5admin' to whatever you want)
+    admin_password = st.sidebar.text_input("Enter Admin Passcode:", type="password")
+    
+    if admin_password == "cover5admin":
+        is_admin = True
+        st.sidebar.success("🔑 Admin Access Verified!")
+    elif admin_password != "":
+        st.sidebar.error("❌ Incorrect Passcode")
+
 TEAM_COLORS = {
     "ARI": {"bg": "#97233F", "text": "#FFFFFF"}, "ATL": {"bg": "#A71930", "text": "#FFFFFF"},
     "BAL": {"bg": "#241773", "text": "#FFFFFF"}, "BUF": {"bg": "#00338D", "text": "#FFFFFF"},
@@ -161,18 +180,19 @@ try:
 except Exception as e:
     st.error(f"Error handling live data: {e}")
 
-# 🎯 REPLACE YOUR OLD SIDEBAR TRASH CAN CODE WITH THIS DEEP CLEANER:
-if st.sidebar.button("🗑️ Purge Test User 'player1' Permanently"):
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                # Truncates all variations of player1 across ALL weeks with case-insensitive filtering
-                cur.execute("DELETE FROM user_picks WHERE LOWER(TRIM(username)) = 'player1'")
-                conn.commit()
-        st.toast("🔥 Successfully expunged 'player1' from all database history!", icon="🚀")
-        st.rerun()
-    except Exception as e:
-        st.error(f"Purge failed: {e}")
+# 🚨 UPDATE YOUR PURGE SYSTEM SO IT ONLY LOADS IF ACCESS IS VERIFIED:
+if is_admin:
+    st.sidebar.subheader("⚠️ Dangerous Maintenance Actions")
+    if st.sidebar.button("🗑️ Purge Test User 'player1' Permanently"):
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM user_picks WHERE LOWER(TRIM(username)) = 'player1'")
+                    conn.commit()
+            st.toast("🔥 Successfully expunged 'player1' from database record history!", icon="🚀")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Purge failed: {e}")
 
 # Initialize Navigation Tab Framework
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
