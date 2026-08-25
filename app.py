@@ -464,8 +464,9 @@ with tab3:
                         season_leaderboard[player]["Total Points"] += (applied * -7)
                         season_leaderboard[player]["Penalties"] += applied
 
-        sorted_season = sorted(season_leaderboard.items(), key=lambda x: x["Total Points"], reverse=True)
-        
+        # 🎯 CHANGE IT TO THIS TO REPAIR THE SEASON STANDINGS:
+        sorted_season = sorted(season_leaderboard.items(), key=lambda x: x[1]["Total Points"], reverse=True)
+ 
         season_rows = []
         for rank, (player, stats) in enumerate(sorted_season, start=1):
             player_str = player if not isinstance(player, (tuple, list)) else player
