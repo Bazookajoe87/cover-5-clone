@@ -161,12 +161,18 @@ try:
 except Exception as e:
     st.error(f"Error handling live data: {e}")
 
-if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
-            conn.commit()
-    st.rerun()
+# 🎯 REPLACE YOUR OLD SIDEBAR TRASH CAN CODE WITH THIS DEEP CLEANER:
+if st.sidebar.button("🗑️ Purge Test User 'player1' Permanently"):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Truncates all variations of player1 across ALL weeks with case-insensitive filtering
+                cur.execute("DELETE FROM user_picks WHERE LOWER(TRIM(username)) = 'player1'")
+                conn.commit()
+        st.toast("🔥 Successfully expunged 'player1' from all database history!", icon="🚀")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Purge failed: {e}")
 
 # Initialize Navigation Tab Framework
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
