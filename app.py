@@ -13,6 +13,12 @@ def init_db():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
+                  CREATE TABLE IF NOT EXISTS user_profiles (
+        username TEXT PRIMARY KEY,
+        password_hash TEXT NOT NULL
+    );
+    -- (Leave the spreads and user_picks code below it exactly as it was)
+""")
                 CREATE TABLE IF NOT EXISTS spreads (
                     game_id TEXT PRIMARY KEY,
                     week_num INT,
@@ -40,10 +46,38 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Cover 5 Clone")
 
-# 🎯 CHANGE TO THIS IN BOX 1:
-username = st.sidebar.text_input("Enter Your Name:", value="").strip().lower()
-
+# 🎯 REPLACE YOUR SIDEBAR NAME BOX WITH THIS AUTHENTICATION CHECK:
+st.sidebar.subheader("👤 Player Login")
+username = st.sidebar.text_input("Enter Username:", value="").strip().lower()
+password = st.sidebar.text_input("Enter Password:", value="", type="password").strip()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
+
+is_logged_in = False
+
+if username and password:
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT password_hash FROM user_profiles WHERE username = %s", (username,))
+                row = cur.fetchone()
+                
+                if row:
+                    # Account exists: Verify matching key credentials
+                    if row[0] == password:
+                        is_logged_in = True
+                        st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
+                    else:
+                        st.sidebar.error("❌ Invalid password for this profile.")
+                else:
+                    # Account is completely new: Automatically register profile attributes
+                    cur.execute("INSERT INTO user_profiles (username, password_hash) VALUES (%s, %s)", (username, password))
+                    conn.commit()
+                    is_logged_in = True
+                    st.sidebar.success(f"🆕 Profile Created: Welcome {username.upper()}!")
+    except Exception as e:
+        st.sidebar.error(f"Login structural crash: {e}")
+elif username and not password:
+    st.sidebar.info("🔑 Please supply a password to unlock your card choices.")
 
 # =====================================================================
 # 🔐 ADMIN LOG-IN PROTECTOR CONTROLS (PLACE IN BOX 1)
@@ -206,6 +240,13 @@ if not username:
 # 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE FIXED CONTAINER CODES)
 # =====================================================================
 with tab1:
+
+    # 🎯 PASTE THIS AT THE VERY TOP OF BOX 2 (RIGHT AFTER with tab1:):
+with tab1:
+    if not is_logged_in:
+        st.warning("👋 Welcome to Cover 5 Pro! Please look at the left sidebar panel and enter your profile username and password credentials to unlock your board and save card choices.")
+        st.stop() # Soft-stops Streamlit from rendering choices until they verify their identity
+
     def save_pick(game_id, team_selected):
         try:
             with get_db_connection() as conn:
