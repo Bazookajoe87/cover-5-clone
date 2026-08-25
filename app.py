@@ -171,6 +171,11 @@ if st.sidebar.button("🗑️ Clear Corrupted Test Picks"):
 # Initialize Navigation Tab Framework
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
 
+# 🎯 PLACE THIS LOGIC BLOCK RIGHT BEFORE BOX 2 STARTS:
+if not username:
+    st.warning("👋 Welcome to Cover 5 Pro! Please type your official league nickname in the left sidebar to unlock the Matchups Board and lock in your picks.")
+    st.stop() # Soft-stops Streamlit from rendering the rest of the cards until they type a name
+
 # =====================================================================
 # 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE FIXED CONTAINER CODES)
 # =====================================================================
