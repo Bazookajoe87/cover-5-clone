@@ -40,7 +40,9 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Cover 5 Clone")
 
-username = st.sidebar.text_input("Enter Your Name:", value="player1").strip().lower()
+# 🎯 CHANGE TO THIS IN BOX 1:
+username = st.sidebar.text_input("Enter Your Name:", value="").strip().lower()
+
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
 TEAM_COLORS = {
