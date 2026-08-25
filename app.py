@@ -253,29 +253,15 @@ with tab1:
         with st.container(border=True):
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
+                     # 🎯 ALSO FLATTEN THIS CENTER TEXT BLOCK:
             if current_pick:
-                center_display_html = f"""
-                <div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:2px;'>🎯 LOCKED</div>
-                <div style='text-align:center; font-size:11px; font-weight:bold; color:#aaa;'>LINE: {spread_str}</div>
-                """
+                center_display_html = f"<div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:2px;'>🎯 LOCKED</div><div style='text-align:center; font-size:11px; font-weight:bold; color:#aaa;'>LINE: {spread_str}</div>"
             else:
                 center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
+          
+              # 🎯 REPLACE YOUR MULTI-LINE TEMPLATE WITH THIS FLAT ONE-LINE VERSION:
+            html_template = "<div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'><div style='width: 38%; __AWAY_STYLE__ background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__AWAY_TEAM__</div><div style='width: 24%; text-align: center;'>__CENTER_HTML__</div><div style='width: 38%; __HOME_STYLE__ background-color: __HOME_BG__; color: __HOME_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__HOME_TEAM__</div></div>"
 
-            # Clean Literal String Blueprint Map (Bypasses f-string crashes)
-            html_template = """
-            <div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'>
-                <div style='width: 38%; __AWAY_STYLE__ background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>
-                    __AWAY_TEAM__
-                </div>
-                <div style='width: 24%; text-align: center;'>
-                    __CENTER_HTML__
-                </div>
-                <div style='width: 38%; __HOME_STYLE__ background-color: __HOME_BG__; color: __HOME_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>
-                    __HOME_TEAM__
-                </div>
-            </div>
-            """
-            
             # Direct token swap loop restores color formatting values perfectly
             clean_html = html_template \
                 .replace("__AWAY_BG__", style_away['bg']) \
