@@ -370,8 +370,8 @@ with tab2:
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
-     # 🎯 CHANGE IT TO THIS TO STABILIZE THE WEEKLY LEADERBOARD SORTING:
-     sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
+        # 🎯 CHANGE IT TO THIS TO STABILIZE THE WEEKLY LEADERBOARD SORTING:
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         display_rows = []
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
