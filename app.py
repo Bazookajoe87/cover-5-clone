@@ -392,12 +392,12 @@ with tab2:
     for username_item, g_id, selected_team in all_user_picks:
         if username_item not in leaderboard_data:
             continue
-            
+        
+        leaderboard_data[username_item]["Picks Made"] += 1   
+        
         game_obj = live_games_dict.get(g_id)
         if not game_obj:
             continue
-            
-        leaderboard_data[username_item]["Picks Made"] += 1
         
         if game_obj["status"] in ["in", "post"]:
             home = game_obj["home"]
