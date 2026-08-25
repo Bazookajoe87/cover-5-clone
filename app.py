@@ -13,12 +13,11 @@ def init_db():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                  CREATE TABLE IF NOT EXISTS user_profiles (
-        username TEXT PRIMARY KEY,
-        password_hash TEXT NOT NULL
-    );
-    -- (Leave the spreads and user_picks code below it exactly as it was)
-""")
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    username TEXT PRIMARY KEY,
+                    password_hash TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS spreads (
                     game_id TEXT PRIMARY KEY,
                     week_num INT,
