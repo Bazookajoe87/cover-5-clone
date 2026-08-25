@@ -327,9 +327,6 @@ with tab2:
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
 
-    if username:
-        all_league_users.add(username)
-
     live_games_dict = {g["id"]: g for g in games}
     leaderboard_data = {user: {"Picks Made": 0, "Points": 0, "Details": []} for user in all_league_users}
 
@@ -422,9 +419,6 @@ with tab3:
                 season_users = {row for row in cur.fetchall()}
     except Exception as e:
         st.error(f"Error compiling season database data: {e}")
-
-    if username:
-        season_users.add(username)
 
     season_leaderboard = {user: {"Total Points": 0, "Wins": 0, "Losses": 0, "Pushes": 0, "Penalties": 0} for user in season_users}
 
