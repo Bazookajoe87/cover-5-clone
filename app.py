@@ -238,13 +238,12 @@ if not username:
 # =====================================================================
 # 🏈 BOX 2: TAB 1 MATCHUPS BOARD (NATIVE FIXED CONTAINER CODES)
 # =====================================================================
-with tab1:
 
     # 🎯 PASTE THIS AT THE VERY TOP OF BOX 2 (RIGHT AFTER with tab1:):
 with tab1:
     if not is_logged_in:
         st.warning("👋 Welcome to Cover 5 Pro! Please look at the left sidebar panel and enter your profile username and password credentials to unlock your board and save card choices.")
-        st.stop() # Soft-stops Streamlit from rendering choices until they verify their identity
+        st.stop() 
 
     def save_pick(game_id, team_selected):
         try:
