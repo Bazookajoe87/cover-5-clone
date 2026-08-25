@@ -243,10 +243,18 @@ with tab1:
         
         current_pick = my_saved_picks.get(g_id)
         
-        # 🚨 RESOLVED ATTRIBUTES: Clear transparent containers with NO leaking raw strings
-        away_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["away"] else "border: 1px solid transparent;"
-        home_border = "border: 4px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);" if current_pick == game["home"] else "border: 1px solid transparent;"
-
+     # We separate the gold shadow into its own clean string to stop Python from breaking the HTML string formatting
+        gold_glow_css = "border: 4px solid #FFD700; box-shadow: 0px 0px 10px #FFD700;"
+        
+        if current_pick == game["away"]:
+            away_border = gold_glow_css
+            home_border = "border: 1px solid transparent;"
+        elif current_pick == game["home"]:
+            away_border = "border: 1px solid transparent;"
+            home_border = gold_glow_css
+        else:
+            away_border = "border: 1px solid transparent;"
+            home_border = "border: 1px solid transparent;"
         with st.container(border=True):
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
