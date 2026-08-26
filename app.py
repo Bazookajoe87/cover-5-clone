@@ -370,18 +370,17 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                                     # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS TRUE NATIVE LAYOUT:
-            col1, col2, col3 = st.columns([38, 24, 38])
+            # 🎯 LOOK FOR THIS COLUMNS LOGIC AT THE BOTTOM OF BOX 2 AND PASTE THIS UPDATE:
+            col1, col2, col3 = st.columns()
             
             with col1:
-                # 📱 CSS injection turns this button into your exact stylized away team card box
-                st.markdown(f"<style>div.stButton > button[key='click_away_{g_id}'] {{ background-color: {style_away['bg']} !important; color: {style_away['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; font-size: 14px; {away_border} width: 100%; }}</style>", unsafe_allow_html=True)
+                # 📱 FIXED SELECTOR: Connects background hex values to the active button object
+                st.markdown(f"<style>button[data-testid='stBaseButton-secondary']:has(div p:contains('{game['away']}')) {{ background-color: {style_away['bg']} !important; color: {style_away['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; {away_border} width: 100%; }}</style>", unsafe_allow_html=True)
                 if st.button(f"{game['away']}\n(AWAY)", key=f"click_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
                         st.rerun()
                         
             with col2:
-                # Center point line, score, and clear action
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
                     if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
@@ -392,8 +391,8 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 CSS injection turns this button into your exact stylized home team card box
-                st.markdown(f"<style>div.stButton > button[key='click_home_{g_id}'] {{ background-color: {style_home['bg']} !important; color: {style_home['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; font-size: 14px; {home_border} width: 100%; }}</style>", unsafe_allow_html=True)
+                # 📱 FIXED SELECTOR: Connects background hex values to the active button object
+                st.markdown(f"<style>button[data-testid='stBaseButton-secondary']:has(div p:contains('{game['home']}')) {{ background-color: {style_home['bg']} !important; color: {style_home['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; {home_border} width: 100%; }}</style>", unsafe_allow_html=True)
                 if st.button(f"{game['home']}\n(HOME)", key=f"click_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
                         st.rerun()
