@@ -500,7 +500,7 @@ with tab2:
                     st.metric(label="Live Score Standing", value=f"{stats['Points']} pts", delta=f"{stats['Picks Made']} / 5 Picks")
                     st.caption(f"🎯 **Ticket Tracking:** {tracking_details}")
 
-        else:
+    else:
         st.info("🏈 No picks have been saved by league players for this week yet.")
 
 # =====================================================================
