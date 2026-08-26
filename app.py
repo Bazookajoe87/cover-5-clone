@@ -367,17 +367,14 @@ with tab1:
                         st.rerun()
 
 # =====================================================================
-# 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (PLACE DIRECTLY UNDER BOX 2)
+# 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
 # =====================================================================
-
-    # 🎯 PASTE THIS DIRECTLY UNDER THE 'with tab2:' STATEMENT IN BOX 3:
 with tab2:
     st.subheader(f"🏈 Week {current_week} Standings & Live Score Tracking")
     
     all_user_picks = []
     all_league_users = set()
 
-        # 🎯 FIX LINE 393 TO MATCH THIS INDENTATION EXACTLY:
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -386,29 +383,36 @@ with tab2:
                 all_user_picks = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
-                all_league_users = {row for row in cur.fetchall() if row}
+                # ✅ FIX 1: Safely pull index [0] to flatten database tuples into plain strings
+                all_league_users = {row[0].strip().lower() for row in cur.fetchall() if row and row[0]}
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
+
+    # Ensure current player is tracked even if they have 0 database rows yet
+    if username:
+        all_league_users.add(username.strip().lower())
 
     live_games_dict = {g["id"]: g for g in games}
     leaderboard_data = {user: {"Picks Made": 0, "Points": 0, "Details": []} for user in all_league_users}
 
-    # 🎯 CHANGE THAT LOOP START TO THIS:
-for username_item, g_id, selected_team in all_user_picks:
-    clean_user_key = str(username_item).strip().lower()
-    if clean_user_key not in leaderboard_data:
-        continue
-    
-    # Ensure the count ticks up using the clean string key:
-    leaderboard_data[clean_user_key]["Picks Made"] += 1
-        
-    leaderboard_data[username_item]["Picks Made"] += 1   
-        
-    game_obj = live_games_dict.get(g_id)
-    if not game_obj:
+    # ✅ FIX 2: Indent the loop forward exactly 4 spaces so it renders inside tab2
+    for username_item, g_id, selected_team in all_user_picks:
+        clean_user_key = str(username_item).strip().lower()
+        if clean_user_key not in leaderboard_data:
             continue
         
-    if game_obj["status"] in ["in", "post"]:
+        # ✅ FIX 3: Route ALL counts and profile adjustments strictly through clean_user_key
+        leaderboard_data[clean_user_key]["Picks Made"] += 1
+            
+        game_obj = live_games_dict.get(g_id)
+        if not game_obj:
+            if clean_user_key == username:
+                leaderboard_data[clean_user_key]["Details"].append(f"{selected_team} (🔒 Pending)")
+            else:
+                leaderboard_data[clean_user_key]["Details"].append("🔒 Hidden")
+            continue
+            
+        if game_obj["status"] in ["in", "post"]:
             home = game_obj["home"]
             away = game_obj["away"]
             h_score = game_obj["home_score"]
@@ -429,13 +433,13 @@ for username_item, g_id, selected_team in all_user_picks:
                 points_earned = -5
                 outcome_str = "❌ Miss (-5)"
                 
-            leaderboard_data[username_item]["Points"] += points_earned
-            leaderboard_data[username_item]["Details"].append(f"{selected_team} ({outcome_str})")
-    else:
-            if username_item == username:
-                leaderboard_data[username_item]["Details"].append(f"{selected_team} (🔒 Pending)")
+            leaderboard_data[clean_user_key]["Points"] += points_earned
+            leaderboard_data[clean_user_key]["Details"].append(f"{selected_team} ({outcome_str})")
+        else:
+            if clean_user_key == username:
+                leaderboard_data[clean_user_key]["Details"].append(f"{selected_team} (🔒 Pending)")
             else:
-                leaderboard_data[username_item]["Details"].append("🔒 Hidden")
+                leaderboard_data[clean_user_key]["Details"].append("🔒 Hidden")
 
     started_games_count = sum(1 for g in games if g["status"] in ["in", "post"])
 
@@ -448,7 +452,6 @@ for username_item, g_id, selected_team in all_user_picks:
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
     if leaderboard_data:
-        # 🎯 CHANGE IT TO THIS TO STABILIZE THE WEEKLY LEADERBOARD SORTING:
         sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         display_rows = []
