@@ -375,11 +375,19 @@ with tab2:
     all_user_picks = []
     all_league_users = set()
 
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT username, game_id, selected_team FROM user_picks WHERE week = %s", (current_week,))
-                all_user_picks = cur.fetchall()
+    # 🎯 REPLACE THEM WITH THIS CORRECTED AND PROTECTED SQL QUERY:
+try:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Force current_week into a clean integer to guarantee it matches your table index rules
+            week_filter = int(current_week)
+            
+            cur.execute("""
+                SELECT username, game_id, selected_team 
+                FROM user_picks 
+                WHERE week = %s
+            """, (week_filter,))
+            all_user_picks = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
                 all_league_users = {row for row in cur.fetchall()}
