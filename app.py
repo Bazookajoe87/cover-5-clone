@@ -393,7 +393,7 @@ with tab2:
                 cur.execute("SELECT DISTINCT username FROM user_picks")
                 
                 # 🎯 CHANGE THAT LINE TO THIS:
- all_league_users = {row[0] for row in cur.fetchall() if row}
+    all_league_users = {row[0] for row in cur.fetchall() if row}
 
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
