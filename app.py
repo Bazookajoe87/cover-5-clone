@@ -293,8 +293,17 @@ with tab1:
                 )
         st.divider()
 
+       # 🎯 PASTE THIS PROGRESS TRACKER BAR IN ITS EXACT PLACE:
     current_pick_count = len(my_saved_picks)
-    st.caption(f"**Selections:** {current_pick_count} / 5 Slots Filled")
+    progress_percentage = min(current_pick_count / 5, 1.0)
+    
+    # Renders a sleek, native horizontal progress tracker bar
+    st.progress(progress_percentage)
+    
+    if current_pick_count == 5:
+        st.success("🎉 Your Ticket is Full! 5 teams are securely locked into your active slip.")
+    else:
+        st.info(f"🎫 Betting Slip: **{current_pick_count} out of 5** slots claimed. ({5 - current_pick_count} remaining matches to choose)")
 
     # Render Matchups Loops
     for game in games:
