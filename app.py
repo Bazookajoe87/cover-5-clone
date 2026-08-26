@@ -370,32 +370,37 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING VERSION:
-            st.markdown(clean_html, unsafe_allow_html=True)
+                                          # 🎯 REPLACE YOUR LOWER MARKDOWN GRID AND BUTTON BLOCKS WITH THIS EXACT SNIPPET:
+            col1, col2, col3 = st.columns([38, 24, 38])
             
-            # Create a native column grid directly beneath your HTML elements
-            btn_col1, btn_col2, btn_col3 = st.columns(3)
-            
-            with btn_col1:
-                # An invisible text marker overlays a button cleanly on top of the away team block
-                if st.button("👆 Select Away", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
-                    if save_pick(g_id, game["away"]):
-                        st.rerun()
+            with col1:
+                # 📱 CLICKABLE CONTAINER AREA FOR AWAY TEAM
+                with st.container(border=False):
+                    st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px;'>{game['away']}</div>", unsafe_allow_html=True)
+                    # This transparently captures clicks over the entire colored away box area
+                    if st.button(" ", key=f"click_away_{g_id}", disabled=is_game_locked, use_container_width=True):
+                        if save_pick(g_id, game["away"]):
+                            st.rerun()
                         
-            with btn_col2:
+            with col2:
+                # Displays center lines and live score states cleanly
+                st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
-                    if st.button("❌ Clear Pick", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                                 conn.commit()
                         st.rerun()
                         
-            with btn_col3:
-                # An invisible text marker overlays a button cleanly on top of the home team block
-                if st.button("👆 Select Home", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
-                    if save_pick(g_id, game["home"]):
-                        st.rerun()
+            with col3:
+                # 📱 CLICKABLE CONTAINER AREA FOR HOME TEAM
+                with st.container(border=False):
+                    st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px;'>{game['home']}</div>", unsafe_allow_html=True)
+                    # This transparently captures clicks over the entire colored home box area
+                    if st.button(" ", key=f"click_home_{g_id}", disabled=is_game_locked, use_container_width=True):
+                        if save_pick(g_id, game["home"]):
+                            st.rerun()
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
