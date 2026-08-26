@@ -391,16 +391,24 @@ with tab2:
                 all_user_picks = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
-                all_league_users = {row for row in cur.fetchall()}
+                
+                # 🎯 CHANGE THAT LINE TO THIS:
+all_league_users = {row[0] for row in cur.fetchall() if row}
+
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
 
     live_games_dict = {g["id"]: g for g in games}
     leaderboard_data = {user: {"Picks Made": 0, "Points": 0, "Details": []} for user in all_league_users}
 
-    for username_item, g_id, selected_team in all_user_picks:
-        if username_item not in leaderboard_data:
-            continue
+    # 🎯 CHANGE THAT LOOP START TO THIS:
+for username_item, g_id, selected_team in all_user_picks:
+    clean_user_key = str(username_item).strip().lower()
+    if clean_user_key not in leaderboard_data:
+        continue
+    
+    # Ensure the count ticks up using the clean string key:
+    leaderboard_data[clean_user_key]["Picks Made"] += 1
         
         leaderboard_data[username_item]["Picks Made"] += 1   
         
