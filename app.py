@@ -370,23 +370,31 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-            st.markdown(clean_html, unsafe_allow_html=True)
+                        # 🎯 REPLACE YOUR LOWER MARKDOWN GRID AND BUTTON BLOCKS WITH THIS EXACT SNIPPET:
+            grid_col1, grid_col2, grid_col3 = st.columns(3)
             
-            btn_col1, btn_col2, btn_col3 = st.columns(3)
-            with btn_col1:
-                if st.button(f"Pick {game['away']}", key=f"btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
+            with grid_col1:
+                # Away clickable container widget
+                away_btn_html = f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:12px; border-radius:6px; font-weight:bold; text-align:center; {away_border}'>{game['away']}</div>"
+                if st.button(away_btn_html, key=f"click_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
                         st.rerun()
-            with btn_col2:
+                        
+            with grid_col2:
+                # Displays center point lines layout natively
+                st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
-                    if st.button("❌ Clear", key=f"clear_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                                 conn.commit()
                         st.rerun()
-            with btn_col3:
-                if st.button(f"Pick {game['home']}", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
+                        
+            with grid_col3:
+                # Home clickable container widget
+                home_btn_html = f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:12px; border-radius:6px; font-weight:bold; text-align:center; {home_border}'>{game['home']}</div>"
+                if st.button(home_btn_html, key=f"click_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
                         st.rerun()
 
