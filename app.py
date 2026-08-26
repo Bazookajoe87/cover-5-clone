@@ -370,24 +370,23 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                  # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING VERSION:
+                                             # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS TRUE NATIVE EVENT ENGINE:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 📱 1. Draw your beautiful team color box via HTML
-                st.html(f"<div id='click_away_box_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; cursor:pointer;'>{game['away']}</div>")
+                # 📱 1. Clean HTML button targets your background colors and gold highlights directly
+                st.html(f"<button id='btn_away_click_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; width:100%; cursor:pointer; display:block;'>{game['away']}</button>")
                 
-                # 📱 2. ✅ FIX: This tiny CSS rule forces the stacked functional button underneath to turn invisible and take up ZERO screen space!
-                st.html(f"<style>button[key='click_away_{g_id}'] {{ display: none !important; }}</style>")
-                
-                if st.button(" ", key=f"click_away_{g_id}", use_container_width=True):
+                # 📱 2. Fallback input captures selections without rendering any ghost space leaks
+                if st.checkbox("Away Trigger Checkbox", key=f"hide_chk_away_{g_id}", label_visibility="collapsed"):
                     if save_pick(g_id, game["away"]):
                         st.rerun()
                         
-                st.html(f"<script>document.getElementById('click_away_box_{g_id}').onclick = function() {{ document.querySelector('button[key=\"click_away_{g_id}\"]').click(); }};</script>")
+                # 📱 3. Fires database operations cleanly on card tap inputs
+                st.html(f"<script>document.getElementById('btn_away_click_{g_id}').onclick = function() {{ var el = document.querySelector('input[id*=\"hide_chk_away_{g_id}\"]'); if(el) {{ el.click(); }} }};</style>")
                         
             with col2:
-                # Displays center lines and live score states cleanly
+                # Displays center line points and live scores cleanly
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
                     if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
@@ -398,17 +397,16 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 1. Draw your beautiful team color box via HTML
-                st.html(f"<div id='click_home_box_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; cursor:pointer;'>{game['home']}</div>")
+                # 📱 1. Clean HTML button targets your background colors and gold highlights directly
+                st.html(f"<button id='btn_home_click_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; width:100%; cursor:pointer; display:block;'>{game['home']}</button>")
                 
-                # 📱 2. ✅ FIX: This tiny CSS rule forces the stacked functional button underneath to turn invisible and take up ZERO screen space!
-                st.html(f"<style>button[key='click_home_{g_id}'] {{ display: none !important; }}</style>")
-                
-                if st.button(" ", key=f"click_home_{g_id}", use_container_width=True):
+                # 📱 2. Fallback input captures selections without rendering any ghost space leaks
+                if st.checkbox("Home Trigger Checkbox", key=f"hide_chk_home_{g_id}", label_visibility="collapsed"):
                     if save_pick(g_id, game["home"]):
                         st.rerun()
                         
-                st.html(f"<script>document.getElementById('click_home_box_{g_id}').onclick = function() {{ document.querySelector('button[key=\"click_home_{g_id}\"]').click(); }};</script>")
+                # 📱 3. Fires database operations cleanly on card tap inputs
+                st.html(f"<script>document.getElementById('btn_home_click_{g_id}').onclick = function() {{ var el = document.querySelector('input[id*=\"hide_chk_home_{g_id}\"]'); if(el) {{ el.click(); }} }};</style>")
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
