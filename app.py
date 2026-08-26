@@ -370,19 +370,20 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                       # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING VERSION:
+                                  # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING VERSION:
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 # 📱 1. Draw your beautiful team color box via HTML
                 st.html(f"<div id='click_away_box_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; cursor:pointer;'>{game['away']}</div>")
                 
-                # 📱 2. Create the real functional button (hidden out of sight using a blank string)
+                # 📱 2. ✅ FIX: This tiny CSS rule forces the stacked functional button underneath to turn invisible and take up ZERO screen space!
+                st.html(f"<style>button[key='click_away_{g_id}'] {{ display: none !important; }}</style>")
+                
                 if st.button(" ", key=f"click_away_{g_id}", use_container_width=True):
                     if save_pick(g_id, game["away"]):
                         st.rerun()
                         
-                # 📱 3. Bridge them together: Clicking the color box automatically triggers the button
                 st.html(f"<script>document.getElementById('click_away_box_{g_id}').onclick = function() {{ document.querySelector('button[key=\"click_away_{g_id}\"]').click(); }};</script>")
                         
             with col2:
@@ -400,12 +401,13 @@ with tab1:
                 # 📱 1. Draw your beautiful team color box via HTML
                 st.html(f"<div id='click_home_box_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; cursor:pointer;'>{game['home']}</div>")
                 
-                # 📱 2. Create the real functional button (hidden out of sight using a blank string)
+                # 📱 2. ✅ FIX: This tiny CSS rule forces the stacked functional button underneath to turn invisible and take up ZERO screen space!
+                st.html(f"<style>button[key='click_home_{g_id}'] {{ display: none !important; }}</style>")
+                
                 if st.button(" ", key=f"click_home_{g_id}", use_container_width=True):
                     if save_pick(g_id, game["home"]):
                         st.rerun()
                         
-                # 📱 3. Bridge them together: Clicking the color box automatically triggers the button
                 st.html(f"<script>document.getElementById('click_home_box_{g_id}').onclick = function() {{ document.querySelector('button[key=\"click_home_{g_id}\"]').click(); }};</script>")
 
 # =====================================================================
