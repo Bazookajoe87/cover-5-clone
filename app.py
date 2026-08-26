@@ -370,43 +370,66 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                             # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS TRUE NATIVE EVENT ENGINE:
-            col1, col2, col3 = st.columns(3)
+                                                       # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS INVISIBLE FORM SYSTEM:
+            # We use unique form actions to submit user picks cleanly on a single line 
+            away_selected_check = "checked" if current_pick == game["away"] else ""
+            home_selected_check = "checked" if current_pick == game["home"] else ""
             
-            with col1:
-                # 📱 1. Clean HTML button targets your background colors and gold highlights directly
-                st.html(f"<button id='btn_away_click_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; width:100%; cursor:pointer; display:block;'>{game['away']}</button>")
-                
-                # 📱 2. Fallback input captures selections without rendering any ghost space leaks
-                if st.checkbox("Away Trigger Checkbox", key=f"hide_chk_away_{g_id}", label_visibility="collapsed"):
-                    if save_pick(g_id, game["away"]):
-                        st.rerun()
-                        
-                # 📱 3. Fires database operations cleanly on card tap inputs
-                st.html(f"<script>document.getElementById('btn_away_click_{g_id}').onclick = function() {{ var el = document.querySelector('input[id*=\"hide_chk_away_{g_id}\"]'); if(el) {{ el.click(); }} }};</style>")
-                        
-            with col2:
-                # Displays center line points and live scores cleanly
-                st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
-                if current_pick:
-                    if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
+            # Combine the whole matchup container layout row into a single unbroken HTML block
+            matchup_row_html = f"""
+            <form method="get" action="/" style="margin: 0; padding: 0; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; width: 100%;">
+                    
+                    <!-- 📱 CLICKABLE AWAY TEAM BUTTON CARD -->
+                    <button type="submit" name="pick_action_{g_id}" value="away" {"disabled" if is_game_locked else ""}
+                        style="width: 38%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {away_border} font-size: 14px; cursor: pointer; display: block; box-sizing: border-box;">
+                        {game['away']}
+                    </button>
+                    
+                    <!-- 📊 CENTER DISPLAY LABELS AREA -->
+                    <div style="width: 24%; text-align: center; box-sizing: border-box;">
+                        {center_display_html}
+                    </div>
+                    
+                    <!-- 📱 CLICKABLE HOME TEAM BUTTON CARD -->
+                    <button type="submit" name="pick_action_{g_id}" value="home" {"disabled" if is_game_locked else ""}
+                        style="width: 38%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {home_border} font-size: 14px; cursor: pointer; display: block; box-sizing: border-box;">
+                        {game['home']}
+                    </button>
+                    
+                </div>
+            </form>
+            """
+            
+            # Flatten code string and render the complete visual layout instantly
+            st.html(matchup_row_html.replace("\n", ""))
+            
+            # --- 🔌 BACKEND TRIGGER LISTENER ROUTER ---
+            # Automatically scans url event parameters to record team picks into Postgres 
+            query_params = st.query_params
+            
+            # Listen for Away click inputs
+            if f"pick_action_{g_id}" in query_params and query_params[f"pick_action_{g_id}"] == "away":
+                st.query_params.clear() # Clear parameters safely to reset the page
+                if save_pick(g_id, game["away"]):
+                    st.rerun()
+                    
+            # Listen for Home click inputs
+            if f"pick_action_{g_id}" in query_params and query_params[f"pick_action_{g_id}"] == "home":
+                st.query_params.clear()
+                if save_pick(g_id, game["home"]):
+                    st.rerun()
+
+            # ❌ Center Clear action button row (renders only if a pick is active)
+            if current_pick:
+                clear_cols = st.columns([1, 1, 1])
+                with clear_cols[1]:
+                    if st.button("❌ Clear Pick", key=f"clear_action_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                                 conn.commit()
                         st.rerun()
-                        
-            with col3:
-                # 📱 1. Clean HTML button targets your background colors and gold highlights directly
-                st.html(f"<button id='btn_home_click_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; width:100%; cursor:pointer; display:block;'>{game['home']}</button>")
-                
-                # 📱 2. Fallback input captures selections without rendering any ghost space leaks
-                if st.checkbox("Home Trigger Checkbox", key=f"hide_chk_home_{g_id}", label_visibility="collapsed"):
-                    if save_pick(g_id, game["home"]):
-                        st.rerun()
-                        
-                # 📱 3. Fires database operations cleanly on card tap inputs
-                st.html(f"<script>document.getElementById('btn_home_click_{g_id}').onclick = function() {{ var el = document.querySelector('input[id*=\"hide_chk_home_{g_id}\"]'); if(el) {{ el.click(); }} }};</style>")
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
