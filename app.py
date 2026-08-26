@@ -477,7 +477,7 @@ with tab2:
 
       # 🎯 PASTE THIS CARD LAYOUT OVER THAT TEXT DATAFRAME IN BOX 3:
     if leaderboard_data:
-        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x["Points"], reverse=True)
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
         
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
             # Assign special visual medal signposts for league leaders
