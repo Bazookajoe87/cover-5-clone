@@ -322,14 +322,23 @@ with tab1:
         away_border = gold_glow_css if current_pick == game["away"] else base_border_css
         home_border = gold_glow_css if current_pick == game["home"] else base_border_css
 
+    # 🎯 PASTE THIS REPLACEMENT SEGMENT IN ITS EXACT PLACE:
         with st.container(border=True):
+            status_state = game["status"].lower()
             spread_str = f"{spread}" if spread < 0 else f"+{spread}"
             
-                     # 🎯 ALSO FLATTEN THIS CENTER TEXT BLOCK:
-            if current_pick:
-                center_display_html = f"<div style='text-align:center; color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:2px;'>🎯 LOCKED</div><div style='text-align:center; font-size:11px; font-weight:bold; color:#aaa;'>LINE: {spread_str}</div>"
+            # Generate premium sports-app badge configurations
+            if status_state == "in":
+                badge_html = "<span style='background-color:#E31837;color:white;padding:2px 6px;border-radius:12px;font-size:10px;font-weight:bold;'>● LIVE</span>"
+            elif status_state == "post":
+                badge_html = "<span style='background-color:#555555;color:white;padding:2px 6px;border-radius:12px;font-size:10px;font-weight:bold;'>FINAL</span>"
             else:
-                center_display_html = f"<div style='text-align:center; font-size:13px; font-weight:bold; color:#888;'>LINE: {spread_str}</div>"
+                badge_html = "<span style='background-color:#125740;color:white;padding:2px 6px;border-radius:12px;font-size:10px;font-weight:bold;'>UPCOMING</span>"
+
+            if current_pick:
+                center_display_html = f"<div style='text-align:center;color:#FFD700;font-size:12px;font-weight:bold;margin-bottom:2px;'>🎯 SELECTED</div><div style='text-align:center;margin-bottom:2px;'>{badge_html}</div><div style='text-align:center;font-size:11px;font-weight:bold;color:#aaa;'>LINE: {spread_str}</div>"
+            else:
+                center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div><div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
               # 🎯 REPLACE YOUR MULTI-LINE TEMPLATE WITH THIS FLAT ONE-LINE VERSION:
             html_template = "<div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'><div style='width: 38%; __AWAY_STYLE__ background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__AWAY_TEAM__</div><div style='width: 24%; text-align: center;'>__CENTER_HTML__</div><div style='width: 38%; __HOME_STYLE__ background-color: __HOME_BG__; color: __HOME_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__HOME_TEAM__</div></div>"
