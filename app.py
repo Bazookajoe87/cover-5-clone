@@ -408,7 +408,7 @@ for username_item, g_id, selected_team in all_user_picks:
     if not game_obj:
             continue
         
-        if game_obj["status"] in ["in", "post"]:
+    if game_obj["status"] in ["in", "post"]:
             home = game_obj["home"]
             away = game_obj["away"]
             h_score = game_obj["home_score"]
