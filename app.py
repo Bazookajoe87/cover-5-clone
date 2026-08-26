@@ -404,7 +404,7 @@ for username_item, g_id, selected_team in all_user_picks:
         
     leaderboard_data[username_item]["Picks Made"] += 1   
         
-        game_obj = live_games_dict.get(g_id)
+    game_obj = live_games_dict.get(g_id)
         if not game_obj:
             continue
         
