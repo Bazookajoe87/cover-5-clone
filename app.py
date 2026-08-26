@@ -371,7 +371,7 @@ with tab1:
                 .replace("__HOME_TEAM__", game['home'])
                 
             # 🎯 LOOK FOR THIS COLUMNS LOGIC AT THE BOTTOM OF BOX 2 AND PASTE THIS UPDATE:
-            col1, col2, col3 = st.columns()
+            col1, col2, col3 = st.columns(3)
             
             with col1:
                 # 📱 FIXED SELECTOR: Connects background hex values to the active button object
