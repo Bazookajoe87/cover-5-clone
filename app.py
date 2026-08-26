@@ -391,7 +391,7 @@ with tab1:
                                 conn.commit()
                         st.rerun()
                         
-            with grid_col3:
+            with btn_col3:
                 # An invisible text marker overlays a button cleanly on top of the home team block
                 if st.button("👆 Select Home", key=f"btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
