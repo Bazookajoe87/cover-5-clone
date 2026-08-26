@@ -369,11 +369,6 @@ with tab1:
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (PLACE DIRECTLY UNDER BOX 2)
 # =====================================================================
-with tab2:
-    st.subheader(f"🏈 Week {current_week} Standings & Live Score Tracking")
-    
-    all_user_picks = []
-    all_league_users = set()
 
     # 🎯 PASTE THIS DIRECTLY UNDER THE 'with tab2:' STATEMENT IN BOX 3:
 with tab2:
