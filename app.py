@@ -431,7 +431,7 @@ for username_item, g_id, selected_team in all_user_picks:
                 
             leaderboard_data[username_item]["Points"] += points_earned
             leaderboard_data[username_item]["Details"].append(f"{selected_team} ({outcome_str})")
-        else:
+    else:
             if username_item == username:
                 leaderboard_data[username_item]["Details"].append(f"{selected_team} (🔒 Pending)")
             else:
