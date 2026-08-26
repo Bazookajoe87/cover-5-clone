@@ -475,23 +475,32 @@ with tab2:
             for _ in range(applicable_penalties):
                 stats["Details"].append("⚠️ Unchosen (-7)")
 
+      # 🎯 PASTE THIS CARD LAYOUT OVER THAT TEXT DATAFRAME IN BOX 3:
     if leaderboard_data:
-        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]["Points"], reverse=True)
+        sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x["Points"], reverse=True)
         
-        display_rows = []
         for rank, (player, stats) in enumerate(sorted_leaderboard, start=1):
-            player_str = player if not isinstance(player, (tuple, list)) else player
+            # Assign special visual medal signposts for league leaders
+            if rank == 1: medal = "🥇"
+            elif rank == 2: medal = "🥈"
+            elif rank == 3: medal = "🥉"
+            else: medal = f"#{rank}"
             
-            display_rows.append({
-                "Rank": f"#{rank}",
-                "Player": str(player_str).upper(),
-                "Total Picks": f"{stats['Picks Made']} / 5",
-                "Live Points Score": f"{stats['Points']} pts",
-                "Live Pick Tracking": ", ".join(stats["Details"]) if stats["Details"] else "No activity"
-            })
-            
-        st.dataframe(display_rows, use_container_width=True, hide_index=True)
-    else:
+            tracking_details = "No choices locked yet"
+            if stats["Details"]:
+                tracking_details = ", ".join(str(d) for d in stats["Details"])
+                
+            # Render each user profile inside an independent container box
+            with st.container(border=True):
+                lead_col1, lead_col2 = st.columns([1, 2])
+                with lead_col1:
+                    st.markdown(f"## {medal}")
+                    st.markdown(f"**{player.upper()}**")
+                with lead_col2:
+                    st.metric(label="Live Score Standing", value=f"{stats['Points']} pts", delta=f"{stats['Picks Made']} / 5 Picks")
+                    st.caption(f"🎯 **Ticket Tracking:** {tracking_details}")
+
+     else:
         st.info("🏈 No picks have been saved by league players for this week yet.")
 
 # =====================================================================
