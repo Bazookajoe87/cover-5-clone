@@ -376,7 +376,7 @@ with tab2:
     all_league_users = set()
 
     # 🎯 REPLACE THEM WITH THIS CORRECTED AND PROTECTED SQL QUERY:
-try:
+ try:
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Force current_week into a clean integer to guarantee it matches your table index rules
