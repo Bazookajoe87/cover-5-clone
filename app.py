@@ -370,20 +370,18 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                          # 🎯 REPLACE YOUR LOWER MARKDOWN GRID AND BUTTON BLOCKS WITH THIS EXACT SNIPPET:
+                                                     # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS TRUE NATIVE LAYOUT:
             col1, col2, col3 = st.columns([38, 24, 38])
             
             with col1:
-                # 📱 CLICKABLE CONTAINER AREA FOR AWAY TEAM
-                with st.container(border=False):
-                    st.markdown(f"<div style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px;'>{game['away']}</div>", unsafe_allow_html=True)
-                    # This transparently captures clicks over the entire colored away box area
-                    if st.button(" ", key=f"click_away_{g_id}", disabled=is_game_locked, use_container_width=True):
-                        if save_pick(g_id, game["away"]):
-                            st.rerun()
+                # 📱 CSS injection turns this button into your exact stylized away team card box
+                st.markdown(f"<style>div.stButton > button[key='click_away_{g_id}'] {{ background-color: {style_away['bg']} !important; color: {style_away['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; font-size: 14px; {away_border} width: 100%; }}</style>", unsafe_allow_html=True)
+                if st.button(f"{game['away']}\n(AWAY)", key=f"click_away_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["away"]):
+                        st.rerun()
                         
             with col2:
-                # Displays center lines and live score states cleanly
+                # Center point line, score, and clear action
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
                     if st.button("❌ Clear", key=f"clear_click_{g_id}", disabled=is_game_locked, use_container_width=True):
@@ -394,13 +392,11 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 CLICKABLE CONTAINER AREA FOR HOME TEAM
-                with st.container(border=False):
-                    st.markdown(f"<div style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px;'>{game['home']}</div>", unsafe_allow_html=True)
-                    # This transparently captures clicks over the entire colored home box area
-                    if st.button(" ", key=f"click_home_{g_id}", disabled=is_game_locked, use_container_width=True):
-                        if save_pick(g_id, game["home"]):
-                            st.rerun()
+                # 📱 CSS injection turns this button into your exact stylized home team card box
+                st.markdown(f"<style>div.stButton > button[key='click_home_{g_id}'] {{ background-color: {style_home['bg']} !important; color: {style_home['text']} !important; font-weight: bold; border-radius: 6px; padding: 12px 5px; font-size: 14px; {home_border} width: 100%; }}</style>", unsafe_allow_html=True)
+                if st.button(f"{game['home']}\n(HOME)", key=f"click_home_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["home"]):
+                        st.rerun()
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
