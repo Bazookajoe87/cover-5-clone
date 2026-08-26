@@ -377,24 +377,16 @@ with tab2:
     all_user_picks = []
     all_league_users = set()
 
+        # 🎯 FIX LINE 393 TO MATCH THIS INDENTATION EXACTLY:
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Force current_week into an integer to align table index properties
                 week_filter = int(current_week)
-                
-                cur.execute("""
-                    SELECT username, game_id, selected_team 
-                    FROM user_picks 
-                    WHERE week = %s
-                """, (week_filter,))
+                cur.execute("SELECT username, game_id, selected_team FROM user_picks WHERE week = %s", (week_filter,))
                 all_user_picks = cur.fetchall()
                 
                 cur.execute("SELECT DISTINCT username FROM user_picks")
-                
-                # 🎯 CHANGE THAT LINE TO THIS:
-    all_league_users = {row[0] for row in cur.fetchall() if row}
-
+                all_league_users = {row for row in cur.fetchall() if row}
     except Exception as e:
         st.error(f"Error compiling leaderboard data: {e}")
 
