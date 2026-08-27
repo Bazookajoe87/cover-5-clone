@@ -399,11 +399,12 @@ with tab1:
             # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
             # Looks up buttons using Streamlit's structural layout configuration. 
             # This handles browser-side rendering variations with 100% precision.
-                     # 🎯 REPLACE ONLY THE STYLE BLOCK AT THE VERY BOTTOM OF BOX 2 WITH THIS VERSION:
+                                 # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
+            # Binds your custom official hex colors directly to your native button keys safely!
             st.markdown(f"""
             <style>
-                /* Force Away Team button background color and gold glow outline */
-                div[data-testid="stColumn"]:has(button div p:contains("{game['away']}")) button {{
+                /* Target the specific unique away team button for this game row using its key value */
+                button[key="team_btn_away_{g_id}"] {{
                     background-color: {style_away['bg']} !important;
                     color: {style_away['text']} !important;
                     font-weight: bold !important;
@@ -411,14 +412,22 @@ with tab1:
                     padding: 12px 5px !important;
                     {away_border}
                 }}
-                /* Force Home Team button background color and gold glow outline */
-                div[data-testid="stColumn"]:has(button div p:contains("{game['home']}")) button {{
+                /* Target the specific unique home team button for this game row using its key value */
+                button[key="team_btn_home_{g_id}"] {{
                     background-color: {style_home['bg']} !important;
                     color: {style_home['text']} !important;
                     font-weight: bold !important;
                     border-radius: 6px !important;
                     padding: 12px 5px !important;
                     {home_border}
+                }}
+                
+                /* Responsive active click feedback states */
+                button[key="team_btn_away_{g_id}"]:active {{
+                    transform: scale(0.98);
+                }}
+                button[key="team_btn_home_{g_id}"]:active {{
+                    transform: scale(0.98);
                 }}
             </style>
             """, unsafe_allow_html=True)
