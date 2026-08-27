@@ -403,11 +403,11 @@ with tab1:
                         st.header("")
                         st.rerun()
 
-            # --- 🎨 THE CLEAN VISUAL OVERRIDE SYSTEM ---
-            # Binds your custom official hex colors directly to your native button structures safely!
+                      # 🎯 REPLACE JUST YOUR STYLE BLOCK AT THE VERY BOTTOM OF THE BOX 2 LOOP WITH THIS VERSION:
             st.markdown(f"""
             <style>
-                button[key="native_away_btn_{g_id}"] {{
+                /* Target the away button background structure directly */
+                div[data-testid="stColumn"]:nth-of-type(1) button {{
                     background-color: {style_away['bg']} !important;
                     color: {style_away['text']} !important;
                     font-weight: bold !important;
@@ -415,7 +415,8 @@ with tab1:
                     padding: 12px 5px !important;
                     {away_border}
                 }}
-                button[key="native_home_btn_{g_id}"] {{
+                /* Target the home button background structure directly */
+                div[data-testid="stColumn"]:nth-of-type(3) button {{
                     background-color: {style_home['bg']} !important;
                     color: {style_home['text']} !important;
                     font-weight: bold !important;
