@@ -307,7 +307,7 @@ with tab1:
                 hud_text = style["text"]
                 
                 # Base appearance for pre-game or upcoming slots
-                score_color = "#aaaaaa" # Default light gray text
+                score_color = "#ffffff" # Default pure white text
                 hud_status_label = f"LINE: {raw_spread}" if raw_spread < 0 else f"LINE: +{raw_spread}"
                 
                 # If the game is active or finished, calculate the text color changes
