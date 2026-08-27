@@ -370,29 +370,20 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-                    # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS PERMANENT REMEDY:
+                           # 🎯 REPLACE YOUR LOWER COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING REPAIR:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 📱 1. Draw your beautiful team color box via HTML (Bypasses gray buttons entirely)
-                st.html(f"<div id='away_box_click_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; cursor:pointer;'>{game['away']}</div>")
-                
-                # 📱 2. Create the hidden functional action trigger using a unique checkbox tracker
-                if st.toggle("Away Select Gate", key=f"tg_away_{g_id}", label_visibility="collapsed"):
+                # 📱 Clickable Team Button: Changes color dynamically when clicked
+                if st.button(f"{game['away']} (AWAY)", key=f"team_btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
-                        # Instantly uncheck the toggle state behind the scenes to keep it fresh for future clicks
-                        with get_db_connection() as conn:
-                            pass
                         st.rerun()
                         
-                # 📱 3. Bridge them together: Tapping the color box instantly triggers the background database save
-                st.html(f"<script>document.getElementById('away_box_click_{g_id}').onclick = function() {{ var el = window.parent.document.querySelector('input[aria-label*=\"tg_away_{g_id}\"]'); if(el) {{ el.click(); }} }};</script>")
-                        
             with col2:
-                # Center point lines, live scoreboard, and clean native clear button
+                # Displays center points and live score states cleanly
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
-                    if st.button("❌ Clear Pick", key=f"clear_action_click_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if st.button("❌ Clear", key=f"clear_click_action_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
@@ -400,18 +391,36 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 1. Draw your beautiful team color box via HTML (Bypasses gray buttons entirely)
-                st.html(f"<div id='home_box_click_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; cursor:pointer;'>{game['home']}</div>")
-                
-                # 📱 2. Create the hidden functional action trigger using a unique checkbox tracker
-                if st.toggle("Home Select Gate", key=f"tg_home_{g_id}", label_visibility="collapsed"):
+                # 📱 Clickable Team Button: Changes color dynamically when clicked
+                if st.button(f"{game['home']} (HOME)", key=f"team_btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
-                        with get_db_connection() as conn:
-                            pass
                         st.rerun()
-                        
-                # 📱 3. Bridge them together: Tapping the color box instantly triggers the background database save
-                st.html(f"<script>document.getElementById('home_box_click_{g_id}').onclick = function() {{ var el = window.parent.document.querySelector('input[aria-label*=\"tg_home_{g_id}\"]'); if(el) {{ el.click(); }} }};</script>")
+
+            # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
+            # Looks up buttons using Streamlit's structural layout configuration. 
+            # This handles browser-side rendering variations with 100% precision.
+            st.markdown(f"""
+            <style>
+                /* Target the left side button to wrap your away color and frame rules */
+                div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key="team_btn_away_{g_id}"]) button {{
+                    background-color: {style_away['bg']} !important;
+                    color: {style_away['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {away_border}
+                }}
+                /* Target the right side button to wrap your home color and frame rules */
+                div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key="team_btn_home_{g_id}"]) button {{
+                    background-color: {style_home['bg']} !important;
+                    color: {style_home['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {home_border}
+                }}
+            </style>
+            """, unsafe_allow_html=True)
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
