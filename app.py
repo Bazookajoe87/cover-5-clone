@@ -45,15 +45,20 @@ except Exception as e:
 st.set_page_config(page_title="Cover 5 Pro", page_icon="🏈", layout="wide")
 st.title("🏈 Cover 5 Clone")
 
-# 🎯 REPLACE YOUR SIDEBAR NAME BOX WITH THIS AUTHENTICATION CHECK:
+# 🎯 RECOVERY CHECK: REPLACE LINES 48 TO 60 WITH THIS BULLETPROOF STREAMLINED BLOCK:
 st.sidebar.subheader("👤 Player Login")
-username = st.sidebar.text_input("Enter Username:", value="").strip().lower()
-password = st.sidebar.text_input("Enter Password:", value="", type="password").strip()
+
+# 🔐 Establish unerasable session string buffers
+if "saved_username" not in st.session_state:
+    st.session_state["saved_username"] = ""
+if "saved_password" not in st.session_state:
+    st.session_state["saved_password"] = ""
+
+# Tie the inputs directly to the session storage keys so URL refreshes can never clear them
+username = st.sidebar.text_input("Enter Username:", value=st.session_state["saved_username"], key="saved_username").strip().lower()
+password = st.sidebar.text_input("Enter Password:", value=st.session_state["saved_password"], key="saved_password", type="password").strip()
 current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index=0)
 
-is_logged_in = False
-
-# 🎯 DELETE THAT OLD LOG IN CHECK AND PASTE THIS CORRECTED BLOCK IN ITS PLACE:
 if "authenticated_user" not in st.session_state:
     st.session_state["authenticated_user"] = False
 
