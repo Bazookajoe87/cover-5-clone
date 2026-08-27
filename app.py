@@ -370,20 +370,25 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-                           # 🎯 REPLACE YOUR LOWER COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING REPAIR:
+                                     # 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR THE BOTTOM OF BOX 2:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 📱 Clickable Team Button: Changes color dynamically when clicked
-                if st.button(f"{game['away']} (AWAY)", key=f"team_btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
-                    if save_pick(g_id, game["away"]):
-                        st.rerun()
+                # 📱 AWAY TEAM CARD: Fully responsive clickable HTML link card
+                away_card_html = f"""
+                <a href='?pick_away_{g_id}=true' target='_self' style='text-decoration: none;'>
+                    <div style='background-color: {style_away['bg']}; color: {style_away['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {away_border} font-size: 14px; width: 100%; display: block;'>
+                        {game['away']}
+                    </div>
+                </a>
+                """
+                st.html(away_card_html)
                         
             with col2:
-                # Displays center points and live score states cleanly
+                # Center point line, score status, and a native clear button
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
-                    if st.button("❌ Clear", key=f"clear_click_action_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if st.button("❌ Clear Pick", key=f"native_clear_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
@@ -391,46 +396,27 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 Clickable Team Button: Changes color dynamically when clicked
-                if st.button(f"{game['home']} (HOME)", key=f"team_btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
-                    if save_pick(g_id, game["home"]):
-                        st.rerun()
+                # 📱 HOME TEAM CARD: Fully responsive clickable HTML link card
+                home_card_html = f"""
+                <a href='?pick_home_{g_id}=true' target='_self' style='text-decoration: none;'>
+                    <div style='background-color: {style_home['bg']}; color: {style_home['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {home_border} font-size: 14px; width: 100%; display: block;'>
+                        {game['home']}
+                    </div>
+                </a>
+                """
+                st.html(home_card_html)
 
-            # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
-            # Looks up buttons using Streamlit's structural layout configuration. 
-            # This handles browser-side rendering variations with 100% precision.
-                                 # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
-            # Binds your custom official hex colors directly to your native button keys safely!
-            st.markdown(f"""
-            <style>
-                /* Target the specific unique away team button for this game row using its key value */
-                button[key="team_btn_away_{g_id}"] {{
-                    background-color: {style_away['bg']} !important;
-                    color: {style_away['text']} !important;
-                    font-weight: bold !important;
-                    border-radius: 6px !important;
-                    padding: 12px 5px !important;
-                    {away_border}
-                }}
-                /* Target the specific unique home team button for this game row using its key value */
-                button[key="team_btn_home_{g_id}"] {{
-                    background-color: {style_home['bg']} !important;
-                    color: {style_home['text']} !important;
-                    font-weight: bold !important;
-                    border-radius: 6px !important;
-                    padding: 12px 5px !important;
-                    {home_border}
-                }}
-                
-                /* Responsive active click feedback states */
-                button[key="team_btn_away_{g_id}"]:active {{
-                    transform: scale(0.98);
-                }}
-                button[key="team_btn_home_{g_id}"]:active {{
-                    transform: scale(0.98);
-                }}
-            </style>
-            """, unsafe_allow_html=True)
+            # --- 🔌 THE BACKEND SELECTION ROUTER ---
+            # Automatically captures your card link clicks and logs them instantly to Postgres
+            if f"pick_away_{g_id}" in st.query_params:
+                st.query_params.clear() # Clear parameters to prevent infinite loops
+                if save_pick(g_id, game["away"]):
+                    st.rerun()
+                    
+            if f"pick_home_{g_id}" in st.query_params:
+                st.query_params.clear()
+                if save_pick(g_id, game["home"]):
+                    st.rerun()
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
