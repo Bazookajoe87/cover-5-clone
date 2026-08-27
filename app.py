@@ -53,7 +53,13 @@ current_week = st.sidebar.selectbox("Select NFL Week", list(range(1, 19)), index
 
 is_logged_in = False
 
-if username and password:
+# 🎯 DELETE THAT OLD LOG IN CHECK AND PASTE THIS CORRECTED BLOCK IN ITS PLACE:
+if "authenticated_user" not in st.session_state:
+    st.session_state["authenticated_user"] = False
+
+is_logged_in = st.session_state["authenticated_user"]
+
+if username and password and not is_logged_in:
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -62,8 +68,26 @@ if username and password:
                 
                 if row:
                     # Account exists: Verify matching key credentials
-                    if row[0] == password:
+                    if row[0] == password:  # ✅ Keep your working database index mapping
+                        st.session_state["authenticated_user"] = True
                         is_logged_in = True
+                        st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
+                    else:
+                        st.sidebar.error("❌ Invalid password for this profile.")
+                else:
+                    # Account is completely new: Automatically register profile attributes
+                    cur.execute("INSERT INTO user_profiles (username, password_hash) VALUES (%s, %s)", (username, password))
+                    conn.commit()
+                    st.session_state["authenticated_user"] = True
+                    is_logged_in = True
+                    st.sidebar.success(f"🆕 Profile Created: Welcome {username.upper()}!")
+    except Exception as e:
+        st.sidebar.error(f"Login structural crash: {e}")
+elif is_logged_in:
+    st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
+elif username and not password:
+    st.sidebar.info("🔑 Please supply a password to unlock your card choices.")
+
                         st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
                     else:
                         st.sidebar.error("❌ Invalid password for this profile.")
