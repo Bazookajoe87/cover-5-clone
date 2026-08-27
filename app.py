@@ -399,10 +399,11 @@ with tab1:
             # --- 🎨 THE PERMANENT BULLETPROOF COLOR WRAPPER ---
             # Looks up buttons using Streamlit's structural layout configuration. 
             # This handles browser-side rendering variations with 100% precision.
+                     # 🎯 REPLACE ONLY THE STYLE BLOCK AT THE VERY BOTTOM OF BOX 2 WITH THIS VERSION:
             st.markdown(f"""
             <style>
-                /* Target the left side button to wrap your away color and frame rules */
-                div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key="team_btn_away_{g_id}"]) button {{
+                /* Force Away Team button background color and gold glow outline */
+                div[data-testid="stColumn"]:has(button div p:contains("{game['away']}")) button {{
                     background-color: {style_away['bg']} !important;
                     color: {style_away['text']} !important;
                     font-weight: bold !important;
@@ -410,8 +411,8 @@ with tab1:
                     padding: 12px 5px !important;
                     {away_border}
                 }}
-                /* Target the right side button to wrap your home color and frame rules */
-                div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key="team_btn_home_{g_id}"]) button {{
+                /* Force Home Team button background color and gold glow outline */
+                div[data-testid="stColumn"]:has(button div p:contains("{game['home']}")) button {{
                     background-color: {style_home['bg']} !important;
                     color: {style_home['text']} !important;
                     font-weight: bold !important;
