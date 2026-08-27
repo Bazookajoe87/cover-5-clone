@@ -88,20 +88,6 @@ elif is_logged_in:
 elif username and not password:
     st.sidebar.info("🔑 Please supply a password to unlock your card choices.")
 
-                     st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
-                else:
-                    st.sidebar.error("❌ Invalid password for this profile.")
-                else:
-                    # Account is completely new: Automatically register profile attributes
-                    cur.execute("INSERT INTO user_profiles (username, password_hash) VALUES (%s, %s)", (username, password))
-                    conn.commit()
-                    is_logged_in = True
-                    st.sidebar.success(f"🆕 Profile Created: Welcome {username.upper()}!")
-    except Exception as e:
-        st.sidebar.error(f"Login structural crash: {e}")
-elif username and not password:
-    st.sidebar.info("🔑 Please supply a password to unlock your card choices.")
-
 # =====================================================================
 # 🔐 ADMIN LOG-IN PROTECTOR CONTROLS (PLACE IN BOX 1)
 # =====================================================================
