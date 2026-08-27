@@ -88,9 +88,9 @@ elif is_logged_in:
 elif username and not password:
     st.sidebar.info("🔑 Please supply a password to unlock your card choices.")
 
-                        st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
-                    else:
-                        st.sidebar.error("❌ Invalid password for this profile.")
+                     st.sidebar.success(f"🔓 Authenticated: {username.upper()}")
+                else:
+                    st.sidebar.error("❌ Invalid password for this profile.")
                 else:
                     # Account is completely new: Automatically register profile attributes
                     cur.execute("INSERT INTO user_profiles (username, password_hash) VALUES (%s, %s)", (username, password))
