@@ -190,7 +190,7 @@ if len(games_list) == 0:
             {"id": f"26_w{week}_g14", "away": "WSH", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 5.5},
             {"id": f"26_w{week}_g15", "away": "DAL", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-14T00:20Z", "espn_spread": -3.0},
             {"id": f"26_w{week}_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-15T00:15Z", "espn_spread": 9.5}
-        ]
+    ]
 return games_list
 
 today_weekday = datetime.now().weekday()
