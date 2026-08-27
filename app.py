@@ -135,7 +135,7 @@ def get_espn_data(week):
     url = f"https://espn.com{week}"
     games_list = []
 
-try:
+    try:
         res = requests.get(url).json()
         if 'events' in res:
             for event in res['events']:
@@ -191,7 +191,7 @@ try:
             {"id": f"26_w{week}_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-15T00:15Z", "espn_spread": 9.5}
         ]
     return games_list
-
+games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
 my_saved_picks = {}
@@ -240,9 +240,6 @@ if is_admin:
             st.rerun()
         except Exception as e:
             st.error(f"Purge failed: {e}")
-            
-# 🎯 PASTE THIS DATA FETCH CALL DIRECTLY ABOVE YOUR TABS DEFINITION:
-games = get_espn_data(current_week)
 
 # Initialize Navigation Tab Framework
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
