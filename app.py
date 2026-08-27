@@ -370,8 +370,8 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-              # 🎯 REPLACE YOUR MULTI-LINE TEMPLATE WITH THIS FLAT ONE-LINE VERSION:
-            html_template = "<div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0;'><div style='width: 38%; __AWAY_STYLE__ background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__AWAY_TEAM__</div><div style='width: 24%; text-align: center;'>__CENTER_HTML__</div><div style='width: 38%; __HOME_STYLE__ background-color: __HOME_BG__; color: __HOME_TXT__; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 14px;'>__HOME_TEAM__</div></div>"
+                         # 🎯 REPLACE YOUR ENTIRE SINGLE-LINE html_template WITH THIS SECURE VERSION:
+            html_template = f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0; width: 100%;'><div id='away_click_card_{g_id}' style='width: 38%; background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; __AWAY_STYLE__ font-size: 14px; cursor: pointer; opacity: {'0.5' if is_game_locked else '1.0'};'>__AWAY_TEAM__</div><div style='width: 24%; text-align: center;'>__CENTER_HTML__</div><div id='home_click_card_{g_id}' style='width: 38%; background-color: __HOME_BG__; color: __HOME_TXT__; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; __HOME_STYLE__ font-size: 14px; cursor: pointer; opacity: {'0.5' if is_game_locked else '1.0'};'>__HOME_TEAM__</div></div><script>if(!{'true' if is_game_locked else 'false'}) {{ document.getElementById('away_click_card_{g_id}').onclick = function() {{ window.parent.document.querySelector('button[key=\"hide_btn_away_{g_id}\"]').click(); }}; document.getElementById('home_click_card_{g_id}').onclick = function() {{ window.parent.document.querySelector('button[key=\"hide_btn_home_{g_id}\"]').click(); }}; }}</script>"
 
             # Direct token swap loop restores color formatting values perfectly
             clean_html = html_template \
@@ -421,21 +421,21 @@ with tab1:
             
             # --- 🔌 BACKEND TRIGGER LISTENER ROUTER ---
             # Automatically scans url event parameters to record team picks into Postgres 
-            query_params = st.query_params
-            
-            # Listen for Away click inputs
-            if f"pick_action_{g_id}" in query_params and query_params[f"pick_action_{g_id}"] == "away":
-                st.query_params.clear() # Clear parameters safely to reset the page
+
+# 🎯 DELETE LINES 424 TO 447 ENTIRELY AND PASTE THIS PRECISE EVENT LOGIC IN ITS PLACE:
+            # 📱 Injected CSS rule forces the functional buttons below to turn invisible and take up ZERO screen pixels
+            st.html(f"<style>button[key='hide_btn_away_{g_id}'], button[key='hide_btn_home_{g_id}'] {{ display: none !important; }}</style>")
+
+            # 🔌 BACKEND SUBMISSION WIDGETS: These functional native buttons sit invisibly on the page 
+            if st.button(" ", key=f"hide_btn_away_{g_id}", disabled=is_game_locked):
                 if save_pick(g_id, game["away"]):
                     st.rerun()
-                    
-            # Listen for Home click inputs
-            if f"pick_action_{g_id}" in query_params and query_params[f"pick_action_{g_id}"] == "home":
-                st.query_params.clear()
+
+            if st.button(" ", key=f"hide_btn_home_{g_id}", disabled=is_game_locked):
                 if save_pick(g_id, game["home"]):
                     st.rerun()
 
-            # ❌ Center Clear action button row (renders only if a pick is active)
+            # ❌ Center Clear Action Row (renders cleanly beneath your matchups if a pick is active)
             if current_pick:
                 clear_cols = st.columns([1, 1, 1])
                 with clear_cols[1]:
