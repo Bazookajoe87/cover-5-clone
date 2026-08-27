@@ -370,9 +370,6 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-                         # 🎯 REPLACE YOUR ENTIRE SINGLE-LINE html_template WITH THIS SECURE VERSION:
-            html_template = f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 5px 0; width: 100%;'><div id='away_click_card_{g_id}' style='width: 38%; background-color: __AWAY_BG__; color: __AWAY_TXT__; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; __AWAY_STYLE__ font-size: 14px; cursor: pointer; opacity: {'0.5' if is_game_locked else '1.0'};'>__AWAY_TEAM__</div><div style='width: 24%; text-align: center;'>__CENTER_HTML__</div><div id='home_click_card_{g_id}' style='width: 38%; background-color: __HOME_BG__; color: __HOME_TXT__; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; __HOME_STYLE__ font-size: 14px; cursor: pointer; opacity: {'0.5' if is_game_locked else '1.0'};'>__HOME_TEAM__</div></div><script>if(!{'true' if is_game_locked else 'false'}) {{ document.getElementById('away_click_card_{g_id}').onclick = function() {{ window.parent.document.querySelector('button[key=\"hide_btn_away_{g_id}\"]').click(); }}; document.getElementById('home_click_card_{g_id}').onclick = function() {{ window.parent.document.querySelector('button[key=\"hide_btn_home_{g_id}\"]').click(); }}; }}</script>"
-
             # Direct token swap loop restores color formatting values perfectly
             clean_html = html_template \
                 .replace("__AWAY_BG__", style_away['bg']) \
@@ -385,66 +382,60 @@ with tab1:
                 .replace("__HOME_STYLE__", home_border) \
                 .replace("__HOME_TEAM__", game['home'])
                 
-                                                       # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS INVISIBLE FORM SYSTEM:
-            # We use unique form actions to submit user picks cleanly on a single line 
-            away_selected_check = "checked" if current_pick == game["away"] else ""
-            home_selected_check = "checked" if current_pick == game["home"] else ""
+                                                                   # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS CORRECTED NATIVE PORTAL:
+            col1, col2, col3 = st.columns(3)
             
-            # Combine the whole matchup container layout row into a single unbroken HTML block
-            matchup_row_html = f"""
-            <form method="get" action="/" style="margin: 0; padding: 0; width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; width: 100%;">
-                    
-                    <!-- 📱 CLICKABLE AWAY TEAM BUTTON CARD -->
-                    <button type="submit" name="pick_action_{g_id}" value="away" {"disabled" if is_game_locked else ""}
-                        style="width: 38%; background-color: {style_away['bg']}; color: {style_away['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {away_border} font-size: 14px; cursor: pointer; display: block; box-sizing: border-box;">
-                        {game['away']}
-                    </button>
-                    
-                    <!-- 📊 CENTER DISPLAY LABELS AREA -->
-                    <div style="width: 24%; text-align: center; box-sizing: border-box;">
-                        {center_display_html}
-                    </div>
-                    
-                    <!-- 📱 CLICKABLE HOME TEAM BUTTON CARD -->
-                    <button type="submit" name="pick_action_{g_id}" value="home" {"disabled" if is_game_locked else ""}
-                        style="width: 38%; background-color: {style_home['bg']}; color: {style_home['text']}; padding: 14px 5px; border-radius: 6px; font-weight: bold; text-align: center; {home_border} font-size: 14px; cursor: pointer; display: block; box-sizing: border-box;">
-                        {game['home']}
-                    </button>
-                    
-                </div>
-            </form>
-            """
-            
-            # Flatten code string and render the complete visual layout instantly
-            st.html(matchup_row_html.replace("\n", ""))
-            
-            # --- 🔌 BACKEND TRIGGER LISTENER ROUTER ---
-            # Automatically scans url event parameters to record team picks into Postgres 
-
-# 🎯 DELETE LINES 424 TO 447 ENTIRELY AND PASTE THIS PRECISE EVENT LOGIC IN ITS PLACE:
-            # 📱 Injected CSS rule forces the functional buttons below to turn invisible and take up ZERO screen pixels
-            st.html(f"<style>button[key='hide_btn_away_{g_id}'], button[key='hide_btn_home_{g_id}'] {{ display: none !important; }}</style>")
-
-            # 🔌 BACKEND SUBMISSION WIDGETS: These functional native buttons sit invisibly on the page 
-            if st.button(" ", key=f"hide_btn_away_{g_id}", disabled=is_game_locked):
-                if save_pick(g_id, game["away"]):
-                    st.rerun()
-
-            if st.button(" ", key=f"hide_btn_home_{g_id}", disabled=is_game_locked):
-                if save_pick(g_id, game["home"]):
-                    st.rerun()
-
-            # ❌ Center Clear Action Row (renders cleanly beneath your matchups if a pick is active)
-            if current_pick:
-                clear_cols = st.columns([1, 1, 1])
-                with clear_cols[1]:
-                    if st.button("❌ Clear Pick", key=f"clear_action_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
+            with col1:
+                # 📱 Away Team Button: High-contrast text label matches up with background indicators
+                away_label = f"🏈 {game['away']} (AWAY)" if current_pick == game["away"] else f"{game['away']} (AWAY)"
+                
+                if st.button(away_label, key=f"native_away_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["away"]):
+                        st.header("") # Safe soft-refresh component
+                        st.rerun()
+                        
+            with col2:
+                # Center point line, score, and clear action row
+                st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
+                if current_pick:
+                    if st.button("❌ Clear Pick", key=f"native_clear_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
                                 conn.commit()
                         st.rerun()
+                        
+            with col3:
+                # 📱 Home Team Button: High-contrast text label matches up with background indicators
+                home_label = f"🏈 {game['home']} (HOME)" if current_pick == game["home"] else f"{game['home']} (HOME)"
+                
+                if st.button(home_label, key=f"native_home_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if save_pick(g_id, game["home"]):
+                        st.header("")
+                        st.rerun()
+
+            # --- 🎨 THE CLEAN VISUAL OVERRIDE SYSTEM ---
+            # Binds your custom official hex colors directly to your native button structures safely!
+            st.markdown(f"""
+            <style>
+                button[key="native_away_btn_{g_id}"] {{
+                    background-color: {style_away['bg']} !important;
+                    color: {style_away['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {away_border}
+                }}
+                button[key="native_home_btn_{g_id}"] {{
+                    background-color: {style_home['bg']} !important;
+                    color: {style_home['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {home_border}
+                }}
+            </style>
+            """, unsafe_allow_html=True)
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
