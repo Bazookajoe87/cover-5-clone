@@ -403,11 +403,11 @@ with tab1:
                         st.header("")
                         st.rerun()
 
-                      # 🎯 REPLACE JUST YOUR STYLE BLOCK AT THE VERY BOTTOM OF THE BOX 2 LOOP WITH THIS VERSION:
+                                 # 🎯 REPLACE YOUR LOWER STYLE BLOCK AT THE VERY BOTTOM OF THE BOX 2 LOOP WITH THIS REPAIR:
             st.markdown(f"""
             <style>
-                /* Target the away button background structure directly */
-                div[data-testid="stColumn"]:nth-of-type(1) button {{
+                /* Target the specific unique away button for this game row using its key element ID */
+                button[key="native_away_btn_{g_id}"] {{
                     background-color: {style_away['bg']} !important;
                     color: {style_away['text']} !important;
                     font-weight: bold !important;
@@ -415,8 +415,8 @@ with tab1:
                     padding: 12px 5px !important;
                     {away_border}
                 }}
-                /* Target the home button background structure directly */
-                div[data-testid="stColumn"]:nth-of-type(3) button {{
+                /* Target the specific unique home button for this game row using its key element ID */
+                button[key="native_home_btn_{g_id}"] {{
                     background-color: {style_home['bg']} !important;
                     color: {style_home['text']} !important;
                     font-weight: bold !important;
