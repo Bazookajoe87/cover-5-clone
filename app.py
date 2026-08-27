@@ -288,37 +288,128 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # HUD Layout Framework mapping point lines cleanly next to selections
+    # 🎯 PASTE THIS DYNAMIC LIVE SCORING HUD ENGINE DIRECTLY IN ITS PLACE:
     if my_saved_picks:
-        st.markdown("### 🎫 My Current Slip")
+        st.markdown("### 🎫 My Live Betting Slip")
+        
+        # Build a fast mapping directory of live game scoring data rows
+        live_games_dict = {g["id"]: g for g in games}
         slip_cols = st.columns(len(my_saved_picks))
+        
         for index, (g_id, chosen_team) in enumerate(my_saved_picks.items()):
             with slip_cols[index]:
                 raw_spread = db_spreads.get(g_id, 0.0)
-                spread_text = f"{raw_spread}" if raw_spread < 0 else f"+{raw_spread}"
+                game_obj = live_games_dict.get(g_id)
                 
-                style = TEAM_COLORS.get(chosen_team, {"bg": "#333", "text": "#fff"})
+                # Base layout configurations for pre-game or upcoming slots
+                hud_bg = "#1e293b" # Clean deep navy base slot
+                hud_text = "#ffffff"
+                hud_status_label = f"LINE: {raw_spread}" if raw_spread < 0 else f"LINE: +{raw_spread}"
+                
+                # If the game has kicked off, evaluate the point margins instantly
+                if game_obj and game_obj["status"] in ["in", "post"]:
+                    home_team = game_obj["home"]
+                    away_team = game_obj["away"]
+                    h_score = game_obj["home_score"]
+                    a_score = game_obj["away_score"]
+                    
+                    # Core Point Spread Valuation Formula
+                    actual_margin = h_score - a_score
+                    
+                    # Calculate if the chosen team is currently winning/losing against the line
+                    if chosen_team == home_team:
+                        cover_margin = actual_margin - raw_spread
+                    else:
+                        cover_margin = -actual_margin + raw_spread
+                        
+                    # Format layout colors and markers matching live cover thresholds
+                    if cover_margin > 0:
+                        hud_bg = "#125740" # Premium Green: User is winning against the spread
+                        hud_status_label = f"+{cover_margin:.1f} ({a_score}-{h_score})"
+                    elif cover_margin < 0:
+                        hud_bg = "#e31837" # Premium Red: User is losing against the spread
+                        hud_status_label = f"{cover_margin:.1f} ({a_score}-{h_score})"
+                    else:
+                        hud_bg = "#475569" # Slate Gray: Game is pushing perfectly
+                        hud_status_label = f"0.0 ({a_score}-{h_score})"
+                        
+                    if game_obj["status"] == "post":
+                        hud_status_label += " 🏁" # Add a clean finish flag indicator for completed games
+                    else:
+                        hud_status_label += " ⚡" # Add a live pulse lightning indicator for active games
+
+                # Render the stylized responsive HUD card component block
                 st.markdown(
-                    f"""<div style='background-color:{style['bg']}; color:{style['text']}; 
-                    padding:8px; border-radius:5px; text-align:center; font-weight:bold; 
-                    box-shadow: 2px 2px 5px rgba(0,0,0,0.15); font-size:13px;'>
-                    🏈 {chosen_team} ({spread_text})
+                    f"""<div style='background-color:{hud_bg}; color:{hud_text}; 
+                    padding:10px 4px; border-radius:8px; text-align:center; font-weight:bold; 
+                    box-shadow: 0px 4px 10px rgba(0,0,0,0.3); font-size:12px; min-height:65px;'>
+                    <div style='font-size:14px;'>🏈 {chosen_team}</div>
+                    <div style='font-size:11px; margin-top:4px; opacity:0.95; font-family:monospace;'>{hud_status_label}</div>
                     </div>""", 
                     unsafe_allow_html=True
                 )
         st.divider()
 
-       # 🎯 PASTE THIS PROGRESS TRACKER BAR IN ITS EXACT PLACE:
+    # 🎯 PASTE THIS TOTAL POINTS TRACKER CARD OVER THAT PROGRESS BAR SECTION:
     current_pick_count = len(my_saved_picks)
     progress_percentage = min(current_pick_count / 5, 1.0)
     
-    # Renders a sleek, native horizontal progress tracker bar
-    st.progress(progress_percentage)
+    # Initialize total score calculation variables
+    total_live_points = 0
+    live_games_dict = {g["id"]: g for g in games}
     
-    if current_pick_count == 5:
-        st.success("🎉 Your Ticket is Full! 5 teams are securely locked into your active slip.")
-    else:
-        st.info(f"🎫 Betting Slip: **{current_pick_count} out of 5** slots claimed. ({5 - current_pick_count} remaining matches to choose)")
+    # Loop over your selected slips to aggregate the live point scores
+    for g_id, chosen_team in my_saved_picks.items():
+        game_obj = live_games_dict.get(g_id)
+        if game_obj and game_obj["status"] in ["in", "post"]:
+            raw_spread = db_spreads.get(g_id, game_obj["espn_spread"])
+            h_score = game_obj["home_score"]
+            a_score = game_obj["away_score"]
+            
+            # Run the core point spread valuation formula
+            actual_margin = h_score - a_score
+            if chosen_team == game_obj["home"]:
+                cover_margin = actual_margin - raw_spread
+            else:
+                cover_margin = -actual_margin + raw_spread
+                
+            # Tally up points based on cover thresholds
+            if cover_margin > 0:
+                total_live_points += 5
+            elif cover_margin < 0:
+                total_live_points -= 5
+
+    # Render a high-contrast layout row splitting the progress tracking and point metrics
+    hud_cols = st.columns([2, 1])
+    
+    with hud_cols[0]:
+        st.progress(progress_percentage)
+        if current_pick_count == 5:
+            st.caption("🎉 **Ticket Status:** 5 teams securely locked in.")
+        else:
+            st.caption(f"🎫 **Ticket Status:** {current_pick_count} of 5 slots claimed. ({5 - current_pick_count} left)")
+            
+    with hud_cols[1]:
+        # Formulate a dynamic visual text color tag matching your live standing point totals
+        if total_live_points > 0:
+            score_color = "#125740"  # Vibrant Green for positive scores
+            score_label = f"+{total_live_points} pts"
+        elif total_live_points < 0:
+            score_color = "#e31837"  # High-Alert Red for negative scores
+            score_label = f"{total_live_points} pts"
+        else:
+            score_color = "#475569"  # Neutral Slate for even scores
+            score_label = "0 pts"
+            
+        st.markdown(
+            f"""<div style='background-color:{score_color}; color:#fff; padding:6px; 
+            border-radius:6px; text-align:center; font-weight:900; font-size:16px; 
+            box-shadow: 0px 3px 8px rgba(0,0,0,0.25); margin-top:-5px;'>
+            {score_label}
+            <div style='font-size:9px; font-weight:bold; opacity:0.85; margin-top:2px;'>WEEKLY TOTAL</div>
+            </div>""", 
+            unsafe_allow_html=True
+        )
 
     # Render Matchups Loops
     for game in games:
