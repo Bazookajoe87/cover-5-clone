@@ -370,23 +370,23 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-                                                # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS UNIFIED PAIRING SYSTEM:
+                                                            # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING REPAIR:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 📱 1. Clean HTML card locks your official team color backgrounds and gold outlines on screen
-                st.html(f"<div id='layer_away_{g_id}' style='background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; width:100%; position:relative;'>{game['away']}</div>")
+                # 📱 AWAY TEAM CONTAINER BUTTON: Embeds your exact official color hex codes directly inside the button text label
+                away_btn_text = f"""<div style="background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; margin:-12px -20px; width:calc(100% + 40px);">{game['away']}</div>"""
                 
-                # 📱 2. The native button is stretched invisibly right on top of your HTML color box
-                if st.button(" ", key=f"overlay_away_{g_id}", disabled=is_game_locked, use_container_width=True):
+                if st.button(away_btn_text, key=f"native_away_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
+                        st.header("") # Safe soft-refresh component
                         st.rerun()
                         
             with col2:
-                # Center point line text, live scoreboards, and a native clear button
+                # Displays center points and live score states cleanly
                 st.markdown(f"<div style='margin-top:2px;'>{center_display_html}</div>", unsafe_allow_html=True)
                 if current_pick:
-                    if st.button("❌ Clear Pick", key=f"overlay_clear_{g_id}", disabled=is_game_locked, use_container_width=True):
+                    if st.button("❌ Clear", key=f"clear_click_action_{g_id}", disabled=is_game_locked, use_container_width=True):
                         with get_db_connection() as conn:
                             with conn.cursor() as cur:
                                 cur.execute("DELETE FROM user_picks WHERE username=%s AND week=%s AND game_id=%s", (username, current_week, g_id))
@@ -394,38 +394,13 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 1. Clean HTML card locks your official team color backgrounds and gold outlines on screen
-                st.html(f"<div id='layer_home_{g_id}' style='background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px 5px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; width:100%; position:relative;'>{game['home']}</div>")
+                # 📱 HOME TEAM CONTAINER BUTTON: Embeds your exact official color hex codes directly inside the button text label
+                home_btn_text = f"""<div style="background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; margin:-12px -20px; width:calc(100% + 40px);">{game['home']}</div>"""
                 
-                # 📱 2. The native button is stretched invisibly right on top of your HTML color box
-                if st.button(" ", key=f"overlay_home_{g_id}", disabled=is_game_locked, use_container_width=True):
+                if st.button(home_btn_text, key=f"native_home_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
+                        st.header("")
                         st.rerun()
-
-            # --- 🎨 THE TRANSPARENT LAYER POSITIONER ---
-            # This absolute-position style forces your functional buttons to sit perfectly 
-            # on top of your colored HTML boxes, while hiding their gray borders completely.
-            st.markdown(f"""
-            <style>
-                div[data-testid="stColumn"]:has(button[key="overlay_away_{g_id}"]) {{
-                    position: relative !important;
-                }}
-                div[data-testid="stColumn"]:has(button[key="overlay_home_{g_id}"]) {{
-                    position: relative !important;
-                }}
-                button[key="overlay_away_{g_id}"], button[key="overlay_home_{g_id}"] {{
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    margin: 0 !important;
-                    opacity: 0 !important; /* Forces the button to go completely clear/invisible */
-                    z-index: 10 !important;
-                    cursor: pointer !important;
-                }}
-            </style>
-            """, unsafe_allow_html=True)
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
