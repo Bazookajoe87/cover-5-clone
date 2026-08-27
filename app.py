@@ -370,16 +370,13 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-                                                            # 🎯 REPLACE YOUR ENTIRE COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS WORKING REPAIR:
+                                                                       # 🎯 REPLACE YOUR LOWER COLUMNS LOGIC AT THE BOTTOM OF BOX 2 WITH THIS DEFINITIVE REPAIR:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 📱 AWAY TEAM CONTAINER BUTTON: Embeds your exact official color hex codes directly inside the button text label
-                away_btn_text = f"""<div style="background-color:{style_away['bg']}; color:{style_away['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {away_border} font-size:14px; margin:-12px -20px; width:calc(100% + 40px);">{game['away']}</div>"""
-                
-                if st.button(away_btn_text, key=f"native_away_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
+                # Clean native text label—zero HTML code text inside the parameters!
+                if st.button(f"{game['away']} (AWAY)", key=f"team_btn_away_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["away"]):
-                        st.header("") # Safe soft-refresh component
                         st.rerun()
                         
             with col2:
@@ -394,13 +391,36 @@ with tab1:
                         st.rerun()
                         
             with col3:
-                # 📱 HOME TEAM CONTAINER BUTTON: Embeds your exact official color hex codes directly inside the button text label
-                home_btn_text = f"""<div style="background-color:{style_home['bg']}; color:{style_home['text']}; padding:14px; border-radius:6px; font-weight:bold; text-align:center; {home_border} font-size:14px; margin:-12px -20px; width:calc(100% + 40px);">{game['home']}</div>"""
-                
-                if st.button(home_btn_text, key=f"native_home_btn_{g_id}", disabled=is_game_locked, use_container_width=True):
+                # Clean native text label—zero HTML code text inside the parameters!
+                if st.button(f"{game['home']} (HOME)", key=f"team_btn_home_{g_id}", disabled=is_game_locked, use_container_width=True):
                     if save_pick(g_id, game["home"]):
-                        st.header("")
                         st.rerun()
+
+            # --- 🎨 THE INDEPENDENT STRUCTURAL COLOR ANCHOR SYSTEM ---
+            # Streamlit embeds widget keys directly into class lookups (e.g. st-key-team_btn_away_...)
+            # This forces the button backgrounds to paint with your exact team hex colors without failing.
+            st.markdown(f"""
+            <style>
+                /* Target the left side button to wrap your away color and frame rules */
+                div[class*="st-key-team_btn_away_{g_id}"] button {{
+                    background-color: {style_away['bg']} !important;
+                    color: {style_away['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {away_border}
+                }}
+                /* Target the right side button to wrap your home color and frame rules */
+                div[class*="st-key-team_btn_home_{g_id}"] button {{
+                    background-color: {style_home['bg']} !important;
+                    color: {style_home['text']} !important;
+                    font-weight: bold !important;
+                    border-radius: 6px !important;
+                    padding: 12px 5px !important;
+                    {home_border}
+                }}
+            </style>
+            """, unsafe_allow_html=True)
 
 # =====================================================================
 # 📅 BOX 3: TAB 2 WEEKLY LEADERBOARD (FULLY CORRECTED AND ALIGNED)
