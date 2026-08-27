@@ -241,6 +241,9 @@ if is_admin:
             st.rerun()
         except Exception as e:
             st.error(f"Purge failed: {e}")
+            
+# 🎯 PASTE THIS DATA FETCH CALL DIRECTLY ABOVE YOUR TABS DEFINITION:
+games = get_espn_data(current_week)
 
 # Initialize Navigation Tab Framework
 tab1, tab2, tab3 = st.tabs(["🏈 Matchups Board", "📅 Weekly Leaderboard", "🏆 Season Standings"])
@@ -260,7 +263,6 @@ with tab1:
         st.warning("👋 Welcome to Cover 5 Pro! Please look at the left sidebar panel and enter your profile username and password credentials to unlock your board and save card choices.")
         st.stop() 
 
-    games = get_espn_data(current_week)
     def save_pick(game_id, team_selected):
         try:
             with get_db_connection() as conn:
