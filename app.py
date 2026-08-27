@@ -288,7 +288,7 @@ with tab1:
 
     st.subheader(f"Week {current_week} Matchups Board")
     
-    # 🎯 PASTE THIS DYNAMIC LIVE SCORING HUD ENGINE DIRECTLY IN ITS PLACE:
+       # 🎯 REPLACE YOUR ENTIRE LIVE BETTING SLIP HUD LOOP WITH THIS SHARP, NO-BADGE VERSION:
     if my_saved_picks:
         st.markdown("### 🎫 My Live Betting Slip")
         
@@ -301,50 +301,50 @@ with tab1:
                 raw_spread = db_spreads.get(g_id, 0.0)
                 game_obj = live_games_dict.get(g_id)
                 
-                # Base layout configurations for pre-game or upcoming slots
-                hud_bg = "#1e293b" # Clean deep navy base slot
-                hud_text = "#ffffff"
+                # 🎨 1. Force the main background to ALWAYS stay the official team color
+                style = TEAM_COLORS.get(chosen_team, {"bg": "#333", "text": "#fff"})
+                hud_bg = style["bg"]
+                hud_text = style["text"]
+                
+                # Base appearance for pre-game or upcoming slots
+                score_color = "#aaaaaa" # Default light gray text
                 hud_status_label = f"LINE: {raw_spread}" if raw_spread < 0 else f"LINE: +{raw_spread}"
                 
-                # If the game has kicked off, evaluate the point margins instantly
+                # If the game is active or finished, calculate the text color changes
                 if game_obj and game_obj["status"] in ["in", "post"]:
                     home_team = game_obj["home"]
-                    away_team = game_obj["away"]
                     h_score = game_obj["home_score"]
                     a_score = game_obj["away_score"]
                     
-                    # Core Point Spread Valuation Formula
                     actual_margin = h_score - a_score
-                    
-                    # Calculate if the chosen team is currently winning/losing against the line
                     if chosen_team == home_team:
                         cover_margin = actual_margin - raw_spread
                     else:
                         cover_margin = -actual_margin + raw_spread
                         
-                    # Format layout colors and markers matching live cover thresholds
+                    # 🎨 2. Change ONLY the score text color based on positive or negative values
                     if cover_margin > 0:
-                        hud_bg = "#125740" # Premium Green: User is winning against the spread
+                        score_color = "#00FF00" # Pure high-contrast green text (no badge)
                         hud_status_label = f"+{cover_margin:.1f} ({a_score}-{h_score})"
                     elif cover_margin < 0:
-                        hud_bg = "#e31837" # Premium Red: User is losing against the spread
+                        score_color = "#FF3333" # Pure high-contrast red text (no badge)
                         hud_status_label = f"{cover_margin:.1f} ({a_score}-{h_score})"
                     else:
-                        hud_bg = "#475569" # Slate Gray: Game is pushing perfectly
+                        score_color = "#ffffff" # Pure white text for a push
                         hud_status_label = f"0.0 ({a_score}-{h_score})"
                         
                     if game_obj["status"] == "post":
-                        hud_status_label += " 🏁" # Add a clean finish flag indicator for completed games
-                    else:
-                        hud_status_label += " ⚡" # Add a live pulse lightning indicator for active games
+                        hud_status_label += " (FINAL)"
 
-                # Render the stylized responsive HUD card component block
+                # Renders the single-layer clean tile block
                 st.markdown(
                     f"""<div style='background-color:{hud_bg}; color:{hud_text}; 
-                    padding:10px 4px; border-radius:8px; text-align:center; font-weight:bold; 
-                    box-shadow: 0px 4px 10px rgba(0,0,0,0.3); font-size:12px; min-height:65px;'>
-                    <div style='font-size:14px;'>🏈 {chosen_team}</div>
-                    <div style='font-size:11px; margin-top:4px; opacity:0.95; font-family:monospace;'>{hud_status_label}</div>
+                    padding:12px 4px; border-radius:8px; text-align:center; font-weight:bold; 
+                    box-shadow: 0px 4px 10px rgba(0,0,0,0.3); font-size:13px; min-height:65px;'>
+                        <div>🏈 {chosen_team}</div>
+                        <div style='font-size:12px; margin-top:5px; color:{score_color}; font-family:monospace;'>
+                            {hud_status_label}
+                        </div>
                     </div>""", 
                     unsafe_allow_html=True
                 )
