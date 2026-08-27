@@ -130,8 +130,7 @@ TEAM_COLORS = {
     "SEA": {"bg": "#002244", "text": "#FFFFFF"}, "TB":  {"bg": "#D50A0A", "text": "#FFFFFF"},
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
-
-@st.cache_data(ttl=300) 
+ 
 def get_espn_data(week):
     url = f"https://espn.com{week}"
     games_list = []
