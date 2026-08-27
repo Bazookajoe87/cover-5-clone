@@ -134,7 +134,7 @@ TEAM_COLORS = {
 def get_espn_data(week):
      url = f"https://espn.com{week}"
 
-    games_list = []
+     games_list = []
 
     try:
         res = requests.get(url).json()
