@@ -172,7 +172,7 @@ try:
 except Exception:
         pass
         
-if len(games_list) == 0:
+    if len(games_list) == 0:
         return [
             {"id": f"26_w{week}_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
             {"id": f"26_w{week}_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 2.5},
@@ -191,7 +191,7 @@ if len(games_list) == 0:
             {"id": f"26_w{week}_g15", "away": "DAL", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-14T00:20Z", "espn_spread": -3.0},
             {"id": f"26_w{week}_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-15T00:15Z", "espn_spread": 9.5}
         ]
-return games_list
+    return games_list
 
 today_weekday = datetime.now().weekday()
 db_spreads = {}
