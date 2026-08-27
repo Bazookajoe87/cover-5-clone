@@ -169,7 +169,7 @@ try:
                     "home_score": home_score, "away_score": away_score,
                     "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
                 })
-except Exception:
+    except Exception:
         pass
         
     if len(games_list) == 0:
