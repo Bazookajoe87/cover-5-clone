@@ -132,8 +132,8 @@ TEAM_COLORS = {
 }
  
 def get_espn_data(week):
-      # 🎯 REPLACE ONLY LINE 139 WITH THIS EXACT URL STRING:
-    url = f"https://espn.com{week}"
+     url = f"https://espn.com{week}"
+
     games_list = []
 
     try:
