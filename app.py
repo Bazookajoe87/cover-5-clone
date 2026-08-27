@@ -370,17 +370,6 @@ with tab1:
             else:
                 center_display_html = f"<div style='text-align:center;margin-bottom:2px;'>{badge_html}</div>{score_text_html}<div style='text-align:center;font-size:13px;font-weight:bold;color:#888;'>LINE: {spread_str}</div>"
           
-            # Direct token swap loop restores color formatting values perfectly
-            clean_html = html_template \
-                .replace("__AWAY_BG__", style_away['bg']) \
-                .replace("__AWAY_TXT__", style_away['text']) \
-                .replace("__AWAY_STYLE__", away_border) \
-                .replace("__AWAY_TEAM__", game['away']) \
-                .replace("__CENTER_HTML__", center_display_html) \
-                .replace("__HOME_BG__", style_home['bg']) \
-                .replace("__HOME_TXT__", style_home['text']) \
-                .replace("__HOME_STYLE__", home_border) \
-                .replace("__HOME_TEAM__", game['home'])
                 
                                                                    # 🎯 REPLACE YOUR LOWER GRID ENTRIES AND COLUMNS WITH THIS CORRECTED NATIVE PORTAL:
             col1, col2, col3 = st.columns(3)
