@@ -136,7 +136,7 @@ def get_espn_data(week):
 
      games_list = []
 
-    try:
+try:
         res = requests.get(url).json()
         if 'events' in res:
             for event in res['events']:
