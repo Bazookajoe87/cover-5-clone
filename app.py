@@ -193,7 +193,6 @@ def get_espn_data(week):
         ]
     return games_list
 
-games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
 my_saved_picks = {}
@@ -261,6 +260,7 @@ with tab1:
         st.warning("👋 Welcome to Cover 5 Pro! Please look at the left sidebar panel and enter your profile username and password credentials to unlock your board and save card choices.")
         st.stop() 
 
+    games = get_espn_data(current_week)
     def save_pick(game_id, team_selected):
         try:
             with get_db_connection() as conn:
