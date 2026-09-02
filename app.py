@@ -185,6 +185,7 @@ today_weekday = datetime.now().weekday()
 db_spreads = {}
 my_saved_picks = {}    
 
+# 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 188-194:
             cur.execute("SELECT game_id, spread_value FROM spreads WHERE week_num=%s", (current_week,))
             db_spreads = dict(cur.fetchall())
             
