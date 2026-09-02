@@ -130,8 +130,8 @@ TEAM_COLORS = {
     "SEA": {"bg": "#002244", "text": "#FFFFFF"}, "TB":  {"bg": "#D50A0A", "text": "#FFFFFF"},
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
- 
-# 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 134–207:
+
+   # 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 134–207:
 def get_espn_data(week):
     url = f"https://espn.com{week}"
     games_list = []
@@ -183,32 +183,9 @@ def get_espn_data(week):
 games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
-my_saved_picks = {}
+my_saved_picks = {}    
 
-try:
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            if games:
-                for g in games:
-                    cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
-                    row = cur.fetchone()
-                    if row:
-                        continue
-                    elif today_weekday == 1: 
-                        cur.execute("""
-                            INSERT INTO spreads (game_id, week_num, spread_value, is_locked) 
-                            VALUES (%s, %s, %s, TRUE) 
-                            ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE
-                        """, (g['id'], current_week, g['espn_spread']))
-                    else: 
-                        cur.execute("""
-                            INSERT INTO spreads (game_id, week_num, spread_value, is_locked) 
-                            VALUES (%s, %s, %s, FALSE) 
-                            ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value WHERE spreads.is_locked = FALSE
-                        """, (g['id'], current_week, g['espn_spread']))
-                conn.commit()
-
-            cur.execute("SELECT game_id, spread_value FROM spreads WHERE week_num=%s", (current_week,))
+cur.execute("SELECT game_id, spread_value FROM spreads WHERE week_num=%s", (current_week,))
             db_spreads = dict(cur.fetchall())
             
             cur.execute("SELECT game_id, selected_team FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
