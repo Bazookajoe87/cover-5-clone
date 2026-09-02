@@ -131,8 +131,7 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-  # 🎯 PASTE THIS REPAIRED, RUN-TIME COMPILING DATA ENGINE IN ITS PLACE:
-@st.cache_data(ttl=60)
+  # 🎯 PASTE THIS COMPILING, ERROR-FREE SCHEDULE DATA ENGINE DIRECTLY IN ITS PLACE:
 def get_espn_data(week):
     # This explicit URL requests the real, official 2026 regular season calendar directly from ESPN's cloud ledger
     url = f"https://espn.com{week}"
@@ -142,17 +141,18 @@ def get_espn_data(week):
         res = requests.get(url).json()
         if 'events' in res:
             for event in res['events']:
-                # Isolate the competitions list wrapper
+                # ESPN's internal payload wraps competitions as a standard list array
                 competitions = event.get('competitions', [])
                 if not competitions:
                     continue
-                    
-                comp = competitions[0] # ✅ Correctly unpack the first game object index safely
+                
+                # Unpack the active match container index safely
+                comp = competitions[0]
                 status = event.get('status', {}).get('type', {}).get('state', 'pre')
                 kickoff_str = event.get('date', '') 
                 espn_spread = 0.0
                 
-                # Safely extract betting details without throwing index errors
+                # Check for opening oddsmaker line strings inside the list object layout
                 odds_list = comp.get('odds', [])
                 if odds_list and len(odds_list) > 0:
                     details = odds_list[0].get('details', '') 
@@ -162,7 +162,7 @@ def get_espn_data(week):
                         except ValueError:
                             pass
                             
-                # Unpack team abbreviations and live score trackers cleanly
+                # Safely extract team abbreviations and points trackers
                 competitors = comp.get('competitors', [])
                 home_team, away_team, home_score, away_score = "", "", 0, 0
                 for team_data in competitors:
