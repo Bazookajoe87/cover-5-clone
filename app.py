@@ -131,6 +131,7 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
  
+# 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 134–207:
 def get_espn_data(week):
     url = f"https://espn.com{week}"
     games_list = []
@@ -144,63 +145,41 @@ def get_espn_data(week):
                 kickoff_str = event['date'] 
                 espn_spread = 0.0
                 
-                if 'odds' in comp and len(comp['odds']) > 0:
-                    details = comp['odds'].get('details', '') 
-                    if details and "EVEN" not in details.upper() and "-" in details:
-                        try:
-                            espn_spread = float(details.split("-")[-1].strip())
-                        except ValueError:
-                            pass
-                            
-                competitors = comp['competitors']
-                home_team, away_team, home_score, away_score = "", "", 0, 0
-                for team_data in competitors:
-                    team_name = team_data['team']['abbreviation']
-                    raw_score = team_data.get('score', 0)
-                    score_val = int(raw_score) if raw_score else 0
-                    if team_data['homeAway'] == 'home': 
-                        home_team, home_score = team_name, score_val
-                    else: 
-                        away_team, away_score = team_name, score_val
-                        
-                games_list.append({
-                    "id": str(event['id']), "home": home_team, "away": away_team,
-                    "home_score": home_score, "away_score": away_score,
-                    "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
-                })
-    except Exception:
-        pass
-        
-    if len(games_list) == 0:
-        try:
-            # Fallback path directly targets ESPN's official 2026 regular season database structure
-            fallback_url = f"https://espn.com{week}"
-            res_backup = requests.get(fallback_url).json()
-            
-            if 'events' in res_backup:
-                for event in res_backup['events']:
-                    comp = event['competitions'][0]
-                    status = event['status']['type']['state']
-                    kickoff_str = event['date']
-                    
-                    competitors = comp['competitors']
+                # Check for odds data safely within the primary competitions layer
+                if comp and len(comp) > 0:
+                    odds_list = comp[0].get('odds', [])
+                    if odds_list and len(odds_list) > 0:
+                        details = odds_list[0].get('details', '') 
+                        if details and "EVEN" not in details.upper() and "-" in details:
+                            try:
+                                espn_spread = float(details.split("-")[-1].strip())
+                            except ValueError:
+                                pass
+                                
+                # Target the competitor arrays cleanly
+                if comp and len(comp) > 0:
+                    competitors = comp[0].get('competitors', [])
                     home_team, away_team, home_score, away_score = "", "", 0, 0
                     for team_data in competitors:
                         team_name = team_data['team']['abbreviation']
-                        if team_data['homeAway'] == 'home':
-                            home_team = team_name
-                        else:
-                            away_team = team_name
+                        raw_score = team_data.get('score', 0)
+                        score_val = int(raw_score) if raw_score else 0
+                        if team_data['homeAway'] == 'home': 
+                            home_team, home_score = team_name, score_val
+                        else: 
+                            away_team, away_score = team_name, score_val
                             
                     games_list.append({
                         "id": str(event['id']), "home": home_team, "away": away_team,
                         "home_score": home_score, "away_score": away_score,
-                        "status": status, "kickoff": kickoff_str, "espn_spread": 0.0
+                        "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
                     })
-        except Exception:
-            pass
-
+    except Exception:
+        pass
+        
     return games_list
+
+# 🔌 Global state initializations link directly underneath the function block
 games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
