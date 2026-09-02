@@ -172,30 +172,35 @@ def get_espn_data(week):
         pass
         
     if len(games_list) == 0:
-        # Array matrix of all 32 NFL teams to rotate through weekly layouts
-        nfl_pool = ["NE", "SEA", "SF", "LAR", "CHI", "CAR", "BAL", "IND", 
-                    "TB", "CIN", "ATL", "PIT", "NYJ", "TEN", "NO", "DET", 
-                    "BUF", "HOU", "CLE", "JAX", "ARI", "LAC", "GB", "MIN", 
-                    "MIA", "LV", "WSH", "PHI", "DAL", "NYG", "DEN", "KC"]
-        
-        fallback_schedule = []
-        # Build 16 unique matchups systematically
-        for i in range(16):
-            # Mathematical index offset shifts the team pairings cleanly for each week
-            away_idx = (i * 2 + week) % 32
-            home_idx = (i * 2 + 1 + week) % 32
+        try:
+            # Fallback path directly targets ESPN's official 2026 regular season database structure
+            fallback_url = f"https://espn.com{week}"
+            res_backup = requests.get(fallback_url).json()
             
-            fallback_schedule.append({
-                "id": f"26_w{week}_g{i+1}",
-                "away": nfl_pool[away_idx],
-                "home": nfl_pool[home_idx],
-                "home_score": 0,
-                "away_score": 0,
-                "status": "pre",
-                "kickoff": f"2026-09-13T17:00Z",
-                "espn_spread": 0.0 # Default fallback line layout
-            })
-        return fallback_schedule
+            if 'events' in res_backup:
+                for event in res_backup['events']:
+                    comp = event['competitions'][0]
+                    status = event['status']['type']['state']
+                    kickoff_str = event['date']
+                    
+                    competitors = comp['competitors']
+                    home_team, away_team, home_score, away_score = "", "", 0, 0
+                    for team_data in competitors:
+                        team_name = team_data['team']['abbreviation']
+                        if team_data['homeAway'] == 'home':
+                            home_team = team_name
+                        else:
+                            away_team = team_name
+                            
+                    games_list.append({
+                        "id": str(event['id']), "home": home_team, "away": away_team,
+                        "home_score": home_score, "away_score": away_score,
+                        "status": status, "kickoff": kickoff_str, "espn_spread": 0.0
+                    })
+        except Exception:
+            pass
+
+    return games_list
 games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
