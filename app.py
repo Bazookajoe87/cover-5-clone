@@ -186,7 +186,7 @@ db_spreads = {}
 my_saved_picks = {}    
 
 cur.execute("SELECT game_id, spread_value FROM spreads WHERE week_num=%s", (current_week,))
-        db_spreads = dict(cur.fetchall())
+            db_spreads = dict(cur.fetchall())
             
             cur.execute("SELECT game_id, selected_team FROM user_picks WHERE username=%s AND week=%s", (username, current_week))
             my_saved_picks = dict(cur.fetchall())
