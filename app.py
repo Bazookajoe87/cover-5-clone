@@ -181,11 +181,34 @@ def get_espn_data(week):
 
 # 🔌 Global state initializations link directly underneath the function block
 games = get_espn_data(current_week)
+# 🎯 DELETE THE BROKEN INDENTED CHUNK AND PASTE THIS EXACT FLUSH BLOCK IN ITS PLACE:
 today_weekday = datetime.now().weekday()
 db_spreads = {}
-my_saved_picks = {}    
+my_saved_picks = {}
 
-# 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 188-194:
+try:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            if games:
+                for g in games:
+                    cur.execute("SELECT spread_value, is_locked FROM spreads WHERE game_id=%s", (g['id'],))
+                    row = cur.fetchone()
+                    if row:
+                        continue
+                    elif today_weekday == 1: 
+                        cur.execute("""
+                            INSERT INTO spreads (game_id, week_num, spread_value, is_locked) 
+                            VALUES (%s, %s, %s, TRUE) 
+                            ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value, is_locked = TRUE
+                        """, (g['id'], current_week, g['espn_spread']))
+                    else: 
+                        cur.execute("""
+                            INSERT INTO spreads (game_id, week_num, spread_value, is_locked) 
+                            VALUES (%s, %s, %s, FALSE) 
+                            ON CONFLICT (game_id) DO UPDATE SET spread_value = EXCLUDED.spread_value WHERE spreads.is_locked = FALSE
+                        """, (g['id'], current_week, g['espn_spread']))
+                conn.commit()
+
             cur.execute("SELECT game_id, spread_value FROM spreads WHERE week_num=%s", (current_week,))
             db_spreads = dict(cur.fetchall())
             
