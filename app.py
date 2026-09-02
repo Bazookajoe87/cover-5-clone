@@ -171,7 +171,7 @@ def get_espn_data(week):
     except Exception:
         pass
         
-        if len(games_list) == 0:
+    if len(games_list) == 0:
         try:
             # Fallback path directly targets ESPN's official 2026 regular season database structure
             fallback_url = f"https://espn.com{week}"
