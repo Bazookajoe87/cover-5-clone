@@ -131,8 +131,10 @@ TEAM_COLORS = {
     "TEN": {"bg": "#4B92DB", "text": "#FFFFFF"}, "WSH": {"bg": "#5A1414", "text": "#FFFFFF"}
 }
 
-   # 🎯 COMPLETE FIXED REPLACEMENT BLOCK FOR LINES 134–207:
+  # 🎯 PASTE THIS REPAIRED, RUN-TIME COMPILING DATA ENGINE IN ITS PLACE:
+@st.cache_data(ttl=60)
 def get_espn_data(week):
+    # This explicit URL requests the real, official 2026 regular season calendar directly from ESPN's cloud ledger
     url = f"https://espn.com{week}"
     games_list = []
 
@@ -140,40 +142,43 @@ def get_espn_data(week):
         res = requests.get(url).json()
         if 'events' in res:
             for event in res['events']:
-                comp = event['competitions']
-                status = event['status']['type']['state'] 
-                kickoff_str = event['date'] 
+                # Isolate the competitions list wrapper
+                competitions = event.get('competitions', [])
+                if not competitions:
+                    continue
+                    
+                comp = competitions[0] # ✅ Correctly unpack the first game object index safely
+                status = event.get('status', {}).get('type', {}).get('state', 'pre')
+                kickoff_str = event.get('date', '') 
                 espn_spread = 0.0
                 
-                # Check for odds data safely within the primary competitions layer
-                if comp and len(comp) > 0:
-                    odds_list = comp[0].get('odds', [])
-                    if odds_list and len(odds_list) > 0:
-                        details = odds_list[0].get('details', '') 
-                        if details and "EVEN" not in details.upper() and "-" in details:
-                            try:
-                                espn_spread = float(details.split("-")[-1].strip())
-                            except ValueError:
-                                pass
-                                
-                # Target the competitor arrays cleanly
-                if comp and len(comp) > 0:
-                    competitors = comp[0].get('competitors', [])
-                    home_team, away_team, home_score, away_score = "", "", 0, 0
-                    for team_data in competitors:
-                        team_name = team_data['team']['abbreviation']
-                        raw_score = team_data.get('score', 0)
-                        score_val = int(raw_score) if raw_score else 0
-                        if team_data['homeAway'] == 'home': 
-                            home_team, home_score = team_name, score_val
-                        else: 
-                            away_team, away_score = team_name, score_val
+                # Safely extract betting details without throwing index errors
+                odds_list = comp.get('odds', [])
+                if odds_list and len(odds_list) > 0:
+                    details = odds_list[0].get('details', '') 
+                    if details and "EVEN" not in details.upper() and "-" in details:
+                        try:
+                            espn_spread = float(details.split("-")[-1].strip())
+                        except ValueError:
+                            pass
                             
-                    games_list.append({
-                        "id": str(event['id']), "home": home_team, "away": away_team,
-                        "home_score": home_score, "away_score": away_score,
-                        "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
-                    })
+                # Unpack team abbreviations and live score trackers cleanly
+                competitors = comp.get('competitors', [])
+                home_team, away_team, home_score, away_score = "", "", 0, 0
+                for team_data in competitors:
+                    team_name = team_data.get('team', {}).get('abbreviation', '')
+                    raw_score = team_data.get('score', 0)
+                    score_val = int(raw_score) if raw_score else 0
+                    if team_data.get('homeAway') == 'home': 
+                        home_team, home_score = team_name, score_val
+                    else: 
+                        away_team, away_score = team_name, score_val
+                        
+                games_list.append({
+                    "id": str(event['id']), "home": home_team, "away": away_team,
+                    "home_score": home_score, "away_score": away_score,
+                    "status": status, "kickoff": kickoff_str, "espn_spread": espn_spread
+                })
     except Exception:
         pass
         
