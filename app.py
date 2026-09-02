@@ -171,26 +171,31 @@ def get_espn_data(week):
     except Exception:
         pass
         
-    if len(games_list) == 0:
-        return [
-            {"id": f"26_w{week}_g1", "away": "NE", "home": "SEA", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
-            {"id": f"26_w{week}_g2", "away": "SF", "home": "LAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 2.5},
-            {"id": f"26_w{week}_g3", "away": "CHI", "home": "CAR", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -2.5},
-            {"id": f"26_w{week}_g4", "away": "BAL", "home": "IND", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -3.5},
-            {"id": f"26_w{week}_g5", "away": "TB", "home": "CIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.5},
-            {"id": f"26_w{week}_g6", "away": "ATL", "home": "PIT", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 1.5},
-            {"id": f"26_w{week}_g7", "away": "NYJ", "home": "TEN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -1.0},
-            {"id": f"26_w{week}_g8", "away": "NO", "home": "DET", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 6.5},
-            {"id": f"26_w{week}_g9", "away": "BUF", "home": "HOU", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": -2.0},
-            {"id": f"26_w{week}_g10", "away": "CLE", "home": "JAX", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 3.0},
-            {"id": f"26_w{week}_g11", "away": "ARI", "home": "LAC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:05Z", "espn_spread": 7.5},
-            {"id": f"26_w{week}_g12", "away": "GB", "home": "MIN", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 1.5},
-            {"id": f"26_w{week}_g13", "away": "MIA", "home": "LV", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T20:25Z", "espn_spread": 4.0},
-            {"id": f"26_w{week}_g14", "away": "WSH", "home": "PHI", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-13T17:00Z", "espn_spread": 5.5},
-            {"id": f"26_w{week}_g15", "away": "DAL", "home": "NYG", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-14T00:20Z", "espn_spread": -3.0},
-            {"id": f"26_w{week}_g16", "away": "DEN", "home": "KC", "home_score": 0, "away_score": 0, "status": "pre", "kickoff": "2026-09-15T00:15Z", "espn_spread": 9.5}
-        ]
-    return games_list
+        if len(games_list) == 0:
+        # Array matrix of all 32 NFL teams to rotate through weekly layouts
+        nfl_pool = ["NE", "SEA", "SF", "LAR", "CHI", "CAR", "BAL", "IND", 
+                    "TB", "CIN", "ATL", "PIT", "NYJ", "TEN", "NO", "DET", 
+                    "BUF", "HOU", "CLE", "JAX", "ARI", "LAC", "GB", "MIN", 
+                    "MIA", "LV", "WSH", "PHI", "DAL", "NYG", "DEN", "KC"]
+        
+        fallback_schedule = []
+        # Build 16 unique matchups systematically
+        for i in range(16):
+            # Mathematical index offset shifts the team pairings cleanly for each week
+            away_idx = (i * 2 + week) % 32
+            home_idx = (i * 2 + 1 + week) % 32
+            
+            fallback_schedule.append({
+                "id": f"26_w{week}_g{i+1}",
+                "away": nfl_pool[away_idx],
+                "home": nfl_pool[home_idx],
+                "home_score": 0,
+                "away_score": 0,
+                "status": "pre",
+                "kickoff": f"2026-09-13T17:00Z",
+                "espn_spread": 0.0 # Default fallback line layout
+            })
+        return fallback_schedule
 games = get_espn_data(current_week)
 today_weekday = datetime.now().weekday()
 db_spreads = {}
