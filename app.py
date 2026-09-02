@@ -171,7 +171,7 @@ def get_espn_data(week):
     except Exception:
         pass
         
-        if len(games_list) == 0:
+    if len(games_list) == 0:
         # Array matrix of all 32 NFL teams to rotate through weekly layouts
         nfl_pool = ["NE", "SEA", "SF", "LAR", "CHI", "CAR", "BAL", "IND", 
                     "TB", "CIN", "ATL", "PIT", "NYJ", "TEN", "NO", "DET", 
